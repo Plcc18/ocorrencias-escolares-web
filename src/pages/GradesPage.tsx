@@ -2,25 +2,11 @@ import { useState } from 'react'
 import { useGrades, useCreateGrade, useUpdateGrade, useDeleteGrade } from '../hooks/useGrades'
 import { PageHeader } from '../components/common/PageHeader'
 import { EmptyState } from '../components/common/EmptyState'
-import { GRADE_SHIFTS } from '../utils/occurrenceTypes'
+import { GRADE_SHIFTS, SHIFT_LABELS, SHIFT_COLORS } from '../utils/occurrenceTypes'
 import type { Grade, GradeDTO } from '../types'
 import { Plus, Pencil, Trash2, BookOpen, X, Search, Users } from 'lucide-react'
 
-const INITIAL_FORM: GradeDTO = { name: '', course: '', shift: 'MANHÃ' }
-
-const SHIFT_LABELS: Record<string, string> = {
-  'MANHÃ': 'Manhã',
-  'TARDE': 'Tarde',
-  'NOITE': 'Noite',
-  'INTEGRAL': 'Integral',
-}
-
-const SHIFT_COLORS: Record<string, string> = {
-  'MANHÃ': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300',
-  'TARDE': 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300',
-  'NOITE': 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
-  'INTEGRAL': 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
-}
+const INITIAL_FORM: GradeDTO = { name: '', course: '', shift: 'MANHA' }
 
 export default function GradesPage() {
   const { data: grades, isLoading } = useGrades()
@@ -137,7 +123,6 @@ export default function GradesPage() {
                 key={grade.id}
                 className="bg-card border border-border rounded-xl p-5 hover:shadow-sm transition-shadow group"
               >
-                {/* Header do card */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <BookOpen className="size-5 text-primary" />
@@ -158,11 +143,9 @@ export default function GradesPage() {
                   </div>
                 </div>
 
-                {/* Info */}
                 <h3 className="text-sm font-semibold text-foreground mb-0.5">{grade.name}</h3>
                 <p className="text-xs text-muted-foreground mb-3">{grade.course}</p>
 
-                {/* Footer */}
                 <div className="flex items-center justify-between">
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SHIFT_COLORS[grade.shift] ?? 'bg-muted text-muted-foreground'}`}>
                     {SHIFT_LABELS[grade.shift] ?? grade.shift}

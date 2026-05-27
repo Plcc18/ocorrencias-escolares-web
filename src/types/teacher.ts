@@ -9,6 +9,9 @@ export interface Teacher {
 export interface TeacherDTO {
   name: string
   email: string
-  password: string
-  subject?: string
+  subject: string  
+}
+
+export interface TeacherCreateDTO extends TeacherDTO {
+  password: string 
 }

@@ -63,7 +63,7 @@ export const OCCURRENCE_TYPES = Object.entries(OCCURRENCE_TYPE_MAP).map(([value,
   ...info,
 }))
 
-// Shifts — sem acento, alinhados com enum GradeShift do backend
+// Shifts — sem acento, alinhados com o enum GradeShift do backend
 export const GRADE_SHIFTS = [
   { value: 'MANHA' as const, label: 'Manhã' },
   { value: 'TARDE' as const, label: 'Tarde' },
@@ -72,3 +72,18 @@ export const GRADE_SHIFTS = [
 ]
 
 export const STUDENT_SHIFTS = GRADE_SHIFTS
+
+// Mapa de exibição para labels dos turnos (usado em GradesPage e StudentsPage)
+export const SHIFT_LABELS: Record<string, string> = {
+  MANHA: 'Manhã',
+  TARDE: 'Tarde',
+  NOITE: 'Noite',
+  INTEGRAL: 'Integral',
+}
+
+export const SHIFT_COLORS: Record<string, string> = {
+  MANHA: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300',
+  TARDE: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300',
+  NOITE: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+  INTEGRAL: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
+}
