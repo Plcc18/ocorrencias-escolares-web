@@ -10,15 +10,14 @@ import { PageHeader } from '../components/common/PageHeader'
 import { formatDate } from '../utils/format'
 import { OCCURRENCE_TYPES } from '../utils/occurrenceTypes'
 import type { OccurrenceFilters } from '../types'
-import { Plus, FileWarning, Search, X, Trash2, ChevronLeft, ChevronRight, Filter } from 'lucide-react'
+import { Plus, FileWarning, X, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function OccurrencesPage() {
   const { isAdmin } = useAuth()
   const [filters, setFilters] = useState<OccurrenceFilters>({ page: 0, size: 20 })
-  const [search, setSearch] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
 
-  const { data, isLoading } = useOccurrences({ ...filters, studentName: search || undefined })
+  const { data, isLoading } = useOccurrences(filters)
   const { data: grades } = useGrades()
   const { data: teachers } = useTeachers()
   const deleteOccurrence = useDeleteOccurrence()
@@ -47,21 +46,6 @@ export default function OccurrencesPage() {
 
       {/* Filters */}
       <div className="px-6 py-3 border-b border-border bg-background flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-48 max-w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={e => { setSearch(e.target.value); setFilters(f => ({ ...f, page: 0 })) }}
-            placeholder="Buscar aluno..."
-            className="w-full h-8 pl-8 pr-3 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-          />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-              <X className="size-3.5" />
-            </button>
-          )}
-        </div>
-
         <select
           value={filters.gradeId ?? ''}
           onChange={e => setFilters(f => ({ ...f, gradeId: e.target.value ? Number(e.target.value) : undefined, page: 0 }))}
@@ -108,9 +92,9 @@ export default function OccurrencesPage() {
           />
         </div>
 
-        {(search || filters.gradeId || filters.teacherId || filters.occurrenceType || filters.startDate) && (
+        {(filters.gradeId || filters.teacherId || filters.occurrenceType || filters.startDate) && (
           <button
-            onClick={() => { setSearch(''); setFilters({ page: 0, size: 20 }) }}
+            onClick={() => setFilters({ page: 0, size: 20 })}
             className="h-8 px-2 text-xs text-muted-foreground border border-border rounded-lg hover:bg-muted flex items-center gap-1 transition-colors"
           >
             <X className="size-3" /> Limpar

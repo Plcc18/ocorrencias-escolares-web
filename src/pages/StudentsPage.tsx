@@ -14,7 +14,7 @@ import {
 import toast from 'react-hot-toast'
 
 const INITIAL_FORM: StudentDTO = {
-  name: '', enrollment: '', gradeId: 0, course: '', shift: 'MANHÃ', status: 'ATIVO',
+  name: '', enrollment: '', gradeId: 0, course: '', shift: 'MANHA', status: 'ATIVO',
   email: '', birthDate: '', guardian: '', guardianPhone: '', guardianEmail: '', notes: '',
 }
 

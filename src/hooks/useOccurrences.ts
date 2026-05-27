@@ -11,14 +11,6 @@ export function useOccurrences(filters: OccurrenceFilters = {}) {
   })
 }
 
-export function useOccurrenceSummary() {
-  return useQuery({
-    queryKey: ['occurrences', 'summary'],
-    queryFn: () => occurrencesService.getSummary(),
-    staleTime: 60_000,
-  })
-}
-
 export function useCreateOccurrence() {
   const qc = useQueryClient()
   return useMutation({

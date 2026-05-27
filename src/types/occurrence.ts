@@ -15,10 +15,10 @@ export interface Occurrence {
   occurrenceType: OccurrenceType
   studentId: number
   studentName: string
-  gradeId: number
-  gradeName: string
   teacherId: number
   teacherName: string
+  gradeId: number
+  gradeName: string
   createdAt: string
   updatedAt: string
 }
@@ -28,11 +28,11 @@ export interface OccurrenceDTO {
   occurrenceDate: string
   occurrenceType: OccurrenceType
   studentId: number
-  gradeId: number
+  teacherId: number
 }
 
 export interface OccurrenceFilters {
-  studentName?: string
+  studentId?: number
   teacherId?: number
   gradeId?: number
   occurrenceType?: OccurrenceType | ''

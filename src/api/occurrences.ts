@@ -4,7 +4,7 @@ import type { Occurrence, OccurrenceDTO, OccurrenceFilters, PageResponse } from 
 export const occurrencesService = {
   getAll: (filters: OccurrenceFilters = {}) => {
     const params = new URLSearchParams()
-    if (filters.studentName) params.append('studentName', filters.studentName)
+    if (filters.studentId) params.append('studentId', String(filters.studentId))
     if (filters.teacherId) params.append('teacherId', String(filters.teacherId))
     if (filters.gradeId) params.append('gradeId', String(filters.gradeId))
     if (filters.occurrenceType) params.append('occurrenceType', filters.occurrenceType)
@@ -27,12 +27,4 @@ export const occurrencesService = {
 
   delete: (id: number) =>
     api.delete(`/occurrences/${id}`),
-
-  getSummary: () =>
-    api.get<{
-      total: number
-      thisMonth: number
-      byType: Record<string, number>
-      recentOccurrences: Occurrence[]
-    }>('/occurrences/summary').then(r => r.data),
 }

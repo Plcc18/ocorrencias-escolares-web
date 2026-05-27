@@ -1,4 +1,4 @@
-export type GradeShift = 'MANHÃ' | 'TARDE' | 'NOITE' | 'INTEGRAL'
+export type GradeShift = 'MANHA' | 'TARDE' | 'NOITE' | 'INTEGRAL'
 
 export interface Grade {
   id: number
@@ -13,5 +13,5 @@ export interface Grade {
 export interface GradeDTO {
   name: string
   course: string
-  shift: string
+  shift: GradeShift
 }

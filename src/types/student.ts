@@ -1,5 +1,5 @@
 export type StudentStatus = 'ATIVO' | 'INATIVO'
-export type StudentShift = 'MANHÃ' | 'TARDE' | 'NOITE' | 'INTEGRAL'
+export type StudentShift = 'MANHA' | 'TARDE' | 'NOITE' | 'INTEGRAL'
 
 export interface Student {
   id: number
@@ -26,7 +26,7 @@ export interface StudentDTO {
   enrollment: string
   gradeId: number
   course: string
-  shift: string
+  shift: StudentShift
   status?: string
   birthDate?: string
   guardian?: string

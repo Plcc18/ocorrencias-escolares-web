@@ -8,7 +8,7 @@ export const studentsService = {
     if (filters.gradeId) params.append('gradeId', String(filters.gradeId))
     if (filters.status) params.append('status', filters.status)
     params.append('page', String(filters.page ?? 0))
-    params.append('size', String(filters.size ?? 20))
+    params.append('size', String(filters.size ?? 15))
     return api.get<PageResponse<Student>>(`/students?${params}`).then(r => r.data)
   },
 

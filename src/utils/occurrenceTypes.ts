@@ -63,11 +63,12 @@ export const OCCURRENCE_TYPES = Object.entries(OCCURRENCE_TYPE_MAP).map(([value,
   ...info,
 }))
 
+// Shifts — sem acento, alinhados com enum GradeShift do backend
 export const GRADE_SHIFTS = [
-  { value: 'MANHÃ', label: 'Manhã' },
-  { value: 'TARDE', label: 'Tarde' },
-  { value: 'NOITE', label: 'Noite' },
-  { value: 'INTEGRAL', label: 'Integral' },
-] as const
+  { value: 'MANHA' as const, label: 'Manhã' },
+  { value: 'TARDE' as const, label: 'Tarde' },
+  { value: 'NOITE' as const, label: 'Noite' },
+  { value: 'INTEGRAL' as const, label: 'Integral' },
+]
 
 export const STUDENT_SHIFTS = GRADE_SHIFTS
