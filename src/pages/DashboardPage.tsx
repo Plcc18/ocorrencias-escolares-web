@@ -57,7 +57,7 @@ export default function DashboardPage() {
       <div className="h-16 flex items-center justify-between px-6 border-b border-border bg-background shrink-0">
         <div>
           <h2 className="text-base font-semibold text-foreground leading-none">
-            {greeting()}, {user?.username?.split(' ')[0]} 👋
+            {greeting()}, {user?.username?.split(' ')[0]}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">Visão geral do sistema</p>
         </div>

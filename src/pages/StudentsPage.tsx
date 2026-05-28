@@ -7,7 +7,7 @@ import { EmptyState } from '../components/common/EmptyState'
 import { PageHeader } from '../components/common/PageHeader'
 import { formatDate } from '../utils/format'
 import { STUDENT_SHIFTS } from '../utils/occurrenceTypes'
-import type { Student, StudentDTO, StudentFilters } from '../types'
+import type { Student, StudentDTO, StudentFilters, GradeShift } from '../types'
 import {
   Search, Plus, Pencil, Trash2, GraduationCap, X, ChevronLeft, ChevronRight
 } from 'lucide-react'
@@ -287,7 +287,12 @@ export default function StudentsPage() {
                   <label className="text-sm font-medium mb-1.5 block">Turno *</label>
                   <select
                     value={form.shift}
-                    onChange={e => setForm(f => ({ ...f, shift: e.target.value }))}
+                    onChange={e => {
+                      const validShifts: GradeShift[] = ['MANHA', 'TARDE', 'NOITE', 'INTEGRAL'];
+                      if (validShifts.includes(e.target.value as GradeShift)) {
+                        setForm(f => ({ ...f, shift: e.target.value as GradeShift }));
+                      }
+                    }}
                     className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
                   >
                     {STUDENT_SHIFTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
