@@ -8,7 +8,8 @@ export interface Student {
   enrollment: string
   gradeId: number
   gradeName: string
-  course: string
+  courseName: string
+  courseAcronym: string
   shift: StudentShift
   status: StudentStatus
   birthDate?: string
@@ -25,7 +26,6 @@ export interface StudentDTO {
   email?: string
   enrollment: string
   gradeId: number
-  course: string
   shift: StudentShift
   status?: string
   birthDate?: string

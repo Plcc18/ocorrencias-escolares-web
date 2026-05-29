@@ -6,6 +6,7 @@ import {
   FileWarning,
   Users,
   BookOpen,
+  BookMarked,
   LogOut,
   ChevronRight,
   School,
@@ -74,6 +75,7 @@ export function AppLayout() {
             <>
               <p className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider mt-4 mb-2">Administração</p>
               <NavItem to="/teachers" icon={<Users className="size-4" />} label="Professores" />
+              <NavItem to="/courses" icon={<BookMarked className="size-4" />} label="Cursos" />
               <NavItem to="/grades" icon={<BookOpen className="size-4" />} label="Turmas" />
             </>
           )}

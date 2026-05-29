@@ -1,31 +1,27 @@
 import { useState } from 'react'
-import { useGrades, useCreateGrade, useUpdateGrade, useDeleteGrade } from '../hooks/useGrades'
-import { useCourses } from '../hooks/useCourses'
+import { useCourses, useCreateCourse, useUpdateCourse, useDeleteCourse } from '../hooks/useCourses'
 import { PageHeader } from '../components/common/PageHeader'
 import { EmptyState } from '../components/common/EmptyState'
-import { GRADE_SHIFTS, SHIFT_LABELS, SHIFT_COLORS } from '../utils/occurrenceTypes'
-import type { Grade, GradeDTO } from '../types'
-import { Plus, Pencil, Trash2, BookOpen, X, Search, Users } from 'lucide-react'
+import type { Course, CourseDTO } from '../types'
+import { Plus, Pencil, Trash2, BookMarked, X, Search } from 'lucide-react'
 
-const INITIAL_FORM: GradeDTO = { name: '', courseId: 0, shift: 'MANHA' }
+const INITIAL_FORM: CourseDTO = { name: '', acronym: '' }
 
-export default function GradesPage() {
-  const { data: grades, isLoading } = useGrades()
-  const { data: courses } = useCourses()
-  const createGrade = useCreateGrade()
-  const updateGrade = useUpdateGrade()
-  const deleteGrade = useDeleteGrade()
+export default function CoursesPage() {
+  const { data: courses, isLoading } = useCourses()
+  const createCourse = useCreateCourse()
+  const updateCourse = useUpdateCourse()
+  const deleteCourse = useDeleteCourse()
 
   const [showModal, setShowModal] = useState(false)
-  const [editing, setEditing] = useState<Grade | null>(null)
-  const [form, setForm] = useState<GradeDTO>(INITIAL_FORM)
+  const [editing, setEditing] = useState<Course | null>(null)
+  const [form, setForm] = useState<CourseDTO>(INITIAL_FORM)
   const [search, setSearch] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
 
-  const filtered = (grades ?? []).filter(g =>
-    g.name.toLowerCase().includes(search.toLowerCase()) ||
-    g.courseName.toLowerCase().includes(search.toLowerCase()) ||
-    g.courseAcronym.toLowerCase().includes(search.toLowerCase())
+  const filtered = (courses ?? []).filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.acronym.toLowerCase().includes(search.toLowerCase())
   )
 
   const openCreate = () => {
@@ -34,20 +30,19 @@ export default function GradesPage() {
     setShowModal(true)
   }
 
-  const openEdit = (grade: Grade) => {
-    setEditing(grade)
-    setForm({ name: grade.name, courseId: grade.courseId, shift: grade.shift })
+  const openEdit = (course: Course) => {
+    setEditing(course)
+    setForm({ name: course.name, acronym: course.acronym })
     setShowModal(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.courseId) return
     try {
       if (editing) {
-        await updateGrade.mutateAsync({ id: editing.id, data: form })
+        await updateCourse.mutateAsync({ id: editing.id, data: form })
       } else {
-        await createGrade.mutateAsync(form)
+        await createCourse.mutateAsync(form)
       }
       setShowModal(false)
     } catch { /* handled */ }
@@ -55,21 +50,21 @@ export default function GradesPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await deleteGrade.mutateAsync(id)
+      await deleteCourse.mutateAsync(id)
       setConfirmDelete(null)
     } catch { /* handled */ }
   }
 
-  const isBusy = createGrade.isPending || updateGrade.isPending
+  const isBusy = createCourse.isPending || updateCourse.isPending
 
   return (
     <div className="flex flex-col flex-1 animate-fadeIn">
-      <PageHeader title="Turmas" description={`${grades?.length ?? 0} turma(s) cadastrada(s)`}>
+      <PageHeader title="Cursos" description={`${courses?.length ?? 0} curso(s) cadastrado(s)`}>
         <button
           onClick={openCreate}
           className="h-8 px-3 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1.5"
         >
-          <Plus className="size-4" /> Nova Turma
+          <Plus className="size-4" /> Novo Curso
         </button>
       </PageHeader>
 
@@ -80,7 +75,7 @@ export default function GradesPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar turma ou curso..."
+            placeholder="Buscar curso ou sigla..."
             className="w-full h-8 pl-8 pr-3 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
           />
           {search && (
@@ -98,48 +93,48 @@ export default function GradesPage() {
       <div className="flex-1 overflow-auto p-6">
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
+            {[...Array(4)].map((_, i) => (
               <div key={i} className="bg-card border border-border rounded-xl p-5 space-y-3">
                 <div className="h-5 w-32 skeleton-shimmer rounded" />
+                <div className="h-4 w-16 skeleton-shimmer rounded" />
                 <div className="h-4 w-24 skeleton-shimmer rounded" />
-                <div className="h-6 w-16 skeleton-shimmer rounded-full" />
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon={<BookOpen className="size-6" />}
-            title="Nenhuma turma encontrada"
-            description={search ? 'Tente outro termo de busca.' : 'Crie a primeira turma para começar.'}
+            icon={<BookMarked className="size-6" />}
+            title="Nenhum curso encontrado"
+            description={search ? 'Tente outro termo de busca.' : 'Crie o primeiro curso para começar.'}
             action={
               <button
                 onClick={openCreate}
                 className="h-8 px-3 bg-primary text-primary-foreground text-sm rounded-lg hover:bg-primary/90 flex items-center gap-1.5"
               >
-                <Plus className="size-3.5" /> Criar Turma
+                <Plus className="size-3.5" /> Criar Curso
               </button>
             }
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filtered.map(grade => (
+            {filtered.map(course => (
               <div
-                key={grade.id}
+                key={course.id}
                 className="bg-card border border-border rounded-xl p-5 hover:shadow-sm transition-shadow group"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <BookOpen className="size-5 text-primary" />
+                    <BookMarked className="size-5 text-primary" />
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => openEdit(grade)}
+                      onClick={() => openEdit(course)}
                       className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <Pencil className="size-3.5" />
                     </button>
                     <button
-                      onClick={() => setConfirmDelete(grade.id)}
+                      onClick={() => setConfirmDelete(course.id)}
                       className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                     >
                       <Trash2 className="size-3.5" />
@@ -147,21 +142,16 @@ export default function GradesPage() {
                   </div>
                 </div>
 
-                <h3 className="text-sm font-semibold text-foreground mb-0.5">{grade.name}</h3>
-                <p className="text-xs text-muted-foreground mb-3">
-                  <span className="font-medium text-foreground/70">{grade.courseAcronym}</span>
-                  {' · '}{grade.courseName}
-                </p>
+                <h3 className="text-sm font-semibold text-foreground mb-0.5">{course.name}</h3>
 
-                <div className="flex items-center justify-between">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SHIFT_COLORS[grade.shift] ?? 'bg-muted text-muted-foreground'}`}>
-                    {SHIFT_LABELS[grade.shift] ?? grade.shift}
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">
+                    {course.acronym}
                   </span>
-                  {grade.studentCount !== undefined && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Users className="size-3" />
-                      {grade.studentCount}
-                    </div>
+                  {course.gradeCount !== undefined && (
+                    <span className="text-xs text-muted-foreground">
+                      {course.gradeCount} turma(s)
+                    </span>
                   )}
                 </div>
               </div>
@@ -175,7 +165,7 @@ export default function GradesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-2xl w-full max-w-sm shadow-xl animate-fadeIn">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h3 className="text-base font-semibold">{editing ? 'Editar Turma' : 'Nova Turma'}</h3>
+              <h3 className="text-base font-semibold">{editing ? 'Editar Curso' : 'Novo Curso'}</h3>
               <button
                 onClick={() => setShowModal(false)}
                 className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -187,54 +177,25 @@ export default function GradesPage() {
             <form onSubmit={handleSubmit}>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Nome da Turma *</label>
+                  <label className="text-sm font-medium mb-1.5 block">Nome do Curso *</label>
                   <input
                     required
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="Ex: 3º DS A, 1º ADM B..."
+                    placeholder="Ex: Desenvolvimento de Sistemas"
                     className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
                   />
                 </div>
-
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Curso *</label>
-                  <select
+                  <label className="text-sm font-medium mb-1.5 block">Sigla *</label>
+                  <input
                     required
-                    value={form.courseId || ''}
-                    onChange={e => setForm(f => ({ ...f, courseId: Number(e.target.value) }))}
-                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-                  >
-                    <option value="">Selecione o curso...</option>
-                    {courses?.map(c => (
-                      <option key={c.id} value={c.id}>{c.acronym} — {c.name}</option>
-                    ))}
-                  </select>
-                  {(!courses || courses.length === 0) && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Nenhum curso cadastrado. Cadastre um curso primeiro.
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">Turno *</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {GRADE_SHIFTS.map(s => (
-                      <button
-                        key={s.value}
-                        type="button"
-                        onClick={() => setForm(f => ({ ...f, shift: s.value }))}
-                        className={`h-9 px-3 text-sm rounded-lg border transition-all ${
-                          form.shift === s.value
-                            ? 'border-primary bg-primary/5 text-primary font-medium ring-1 ring-primary'
-                            : 'border-border hover:bg-muted text-foreground'
-                        }`}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
+                    value={form.acronym}
+                    onChange={e => setForm(f => ({ ...f, acronym: e.target.value.toUpperCase() }))}
+                    placeholder="Ex: DS"
+                    maxLength={20}
+                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 uppercase"
+                  />
                 </div>
               </div>
 
@@ -248,7 +209,7 @@ export default function GradesPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isBusy || !form.courseId}
+                  disabled={isBusy}
                   className="h-9 px-4 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
                 >
                   {isBusy ? (
@@ -256,7 +217,7 @@ export default function GradesPage() {
                       <div className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                       Salvando...
                     </>
-                  ) : (editing ? 'Salvar' : 'Criar Turma')}
+                  ) : (editing ? 'Salvar' : 'Criar Curso')}
                 </button>
               </div>
             </form>
@@ -268,9 +229,9 @@ export default function GradesPage() {
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-xl p-6 w-full max-w-sm shadow-xl animate-fadeIn">
-            <h3 className="font-semibold text-foreground mb-2">Remover turma?</h3>
+            <h3 className="font-semibold text-foreground mb-2">Remover curso?</h3>
             <p className="text-sm text-muted-foreground mb-5">
-              Os alunos e ocorrências relacionados podem ser afetados. Esta ação não pode ser desfeita.
+              Todas as turmas vinculadas precisam ser removidas antes. Esta ação não pode ser desfeita.
             </p>
             <div className="flex gap-2 justify-end">
               <button
@@ -281,10 +242,10 @@ export default function GradesPage() {
               </button>
               <button
                 onClick={() => handleDelete(confirmDelete)}
-                disabled={deleteGrade.isPending}
+                disabled={deleteCourse.isPending}
                 className="h-8 px-3 text-sm bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 disabled:opacity-50"
               >
-                {deleteGrade.isPending ? 'Removendo...' : 'Remover'}
+                {deleteCourse.isPending ? 'Removendo...' : 'Remover'}
               </button>
             </div>
           </div>

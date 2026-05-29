@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage'
 import StudentsPage from './pages/StudentsPage'
 import TeachersPage from './pages/TeachersPage'
 import GradesPage from './pages/GradesPage'
+import CoursesPage from './pages/CoursesPage'
 import OccurrencesPage from './pages/OccurrencesPage'
 import NewOccurrencePage from './pages/NewOccurrencePage'
 
@@ -51,6 +52,7 @@ export default function App() {
                 <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
                   <Route path="/teachers" element={<TeachersPage />} />
                   <Route path="/grades" element={<GradesPage />} />
+                  <Route path="/courses" element={<CoursesPage />} />
                 </Route>
               </Route>
             </Route>

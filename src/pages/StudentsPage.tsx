@@ -1,11 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useStudents, useCreateStudent, useUpdateStudent, useDeleteStudent } from '../hooks/useStudents'
 import { useGrades } from '../hooks/useGrades'
 import { useAuth } from '../contexts/AuthContext'
 import { StatusBadge } from '../components/common/StatusBadge'
 import { EmptyState } from '../components/common/EmptyState'
 import { PageHeader } from '../components/common/PageHeader'
-import { formatDate } from '../utils/format'
 import { STUDENT_SHIFTS } from '../utils/occurrenceTypes'
 import type { Student, StudentDTO, StudentFilters, GradeShift } from '../types'
 import {
@@ -14,7 +13,7 @@ import {
 import toast from 'react-hot-toast'
 
 const INITIAL_FORM: StudentDTO = {
-  name: '', enrollment: '', gradeId: 0, course: '', shift: 'MANHA', status: 'ATIVO',
+  name: '', enrollment: '', gradeId: 0, shift: 'MANHA', status: 'ATIVO',
   email: '', birthDate: '', guardian: '', guardianPhone: '', guardianEmail: '', notes: '',
 }
 
@@ -37,6 +36,9 @@ export default function StudentsPage() {
   const totalPages = data?.totalPages ?? 0
   const currentPage = filters.page ?? 0
 
+  // When grade changes in form, auto-set shift from grade info if needed
+  const selectedGrade = grades?.find(g => g.id === form.gradeId)
+
   const openCreate = () => {
     setEditing(null)
     setForm(INITIAL_FORM)
@@ -47,7 +49,7 @@ export default function StudentsPage() {
     setEditing(student)
     setForm({
       name: student.name, enrollment: student.enrollment, gradeId: student.gradeId,
-      course: student.course, shift: student.shift, status: student.status,
+      shift: student.shift, status: student.status,
       email: student.email ?? '', birthDate: student.birthDate ?? '',
       guardian: student.guardian ?? '', guardianPhone: student.guardianPhone ?? '',
       guardianEmail: student.guardianEmail ?? '', notes: student.notes ?? '',
@@ -115,7 +117,7 @@ export default function StudentsPage() {
           className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
         >
           <option value="">Todas as turmas</option>
-          {grades?.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          {grades?.map(g => <option key={g.id} value={g.id}>{g.name} — {g.courseAcronym}</option>)}
         </select>
         <select
           value={filters.status ?? ''}
@@ -159,6 +161,7 @@ export default function StudentsPage() {
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Aluno</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Matrícula</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Turma</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Curso</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Turno</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Responsável</th>
@@ -169,13 +172,15 @@ export default function StudentsPage() {
               {students.map(student => (
                 <tr key={student.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-6 py-3.5">
-                    <div>
-                      <p className="font-medium text-foreground">{student.name}</p>
-                      <p className="text-xs text-muted-foreground">{student.course}</p>
-                    </div>
+                    <p className="font-medium text-foreground">{student.name}</p>
                   </td>
                   <td className="px-4 py-3.5 text-muted-foreground">{student.enrollment}</td>
                   <td className="px-4 py-3.5 text-foreground">{student.gradeName}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                      {student.courseAcronym}
+                    </span>
+                  </td>
                   <td className="px-4 py-3.5 text-muted-foreground">{student.shift}</td>
                   <td className="px-4 py-3.5"><StatusBadge status={student.status} /></td>
                   <td className="px-4 py-3.5 text-muted-foreground text-xs">{student.guardian || '-'}</td>
@@ -207,9 +212,7 @@ export default function StudentsPage() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="px-6 py-3 border-t border-border flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
-            Página {currentPage + 1} de {totalPages}
-          </span>
+          <span className="text-muted-foreground">Página {currentPage + 1} de {totalPages}</span>
           <div className="flex items-center gap-1">
             <button
               disabled={currentPage === 0}
@@ -229,7 +232,7 @@ export default function StudentsPage() {
         </div>
       )}
 
-      {/* Modal Criar/Editar */}
+      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-2xl w-full max-w-2xl shadow-xl animate-fadeIn max-h-[90vh] flex flex-col">
@@ -270,27 +273,31 @@ export default function StudentsPage() {
                     className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
                   >
                     <option value="">Selecionar turma</option>
-                    {grades?.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                    {grades?.map(g => (
+                      <option key={g.id} value={g.id}>{g.name} — {g.courseAcronym}</option>
+                    ))}
                   </select>
                 </div>
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">Curso *</label>
-                  <input
-                    required
-                    value={form.course}
-                    onChange={e => setForm(f => ({ ...f, course: e.target.value }))}
-                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-                    placeholder="Ex: Ensino Médio"
-                  />
-                </div>
+
+                {/* Curso derivado da turma — somente leitura */}
+                {selectedGrade && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium mb-1.5 block text-muted-foreground">Curso</label>
+                    <div className="w-full h-9 px-3 border border-border rounded-lg text-sm bg-muted/40 flex items-center text-muted-foreground">
+                      <span className="font-medium text-foreground mr-2">{selectedGrade.courseAcronym}</span>
+                      {selectedGrade.courseName}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Turno *</label>
                   <select
                     value={form.shift}
                     onChange={e => {
-                      const validShifts: GradeShift[] = ['MANHA', 'TARDE', 'NOITE', 'INTEGRAL'];
+                      const validShifts: GradeShift[] = ['MANHA', 'TARDE', 'NOITE', 'INTEGRAL']
                       if (validShifts.includes(e.target.value as GradeShift)) {
-                        setForm(f => ({ ...f, shift: e.target.value as GradeShift }));
+                        setForm(f => ({ ...f, shift: e.target.value as GradeShift }))
                       }
                     }}
                     className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
@@ -328,6 +335,7 @@ export default function StudentsPage() {
                     <option value="INATIVO">Inativo</option>
                   </select>
                 </div>
+
                 <div className="col-span-2 border-t border-border pt-4">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Responsável</p>
                   <div className="grid grid-cols-2 gap-4">
@@ -401,9 +409,7 @@ export default function StudentsPage() {
             <h3 className="font-semibold text-foreground mb-2">Remover aluno?</h3>
             <p className="text-sm text-muted-foreground mb-5">Esta ação não pode ser desfeita.</p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirmDelete(null)} className="h-8 px-3 text-sm border border-border rounded-lg hover:bg-muted">
-                Cancelar
-              </button>
+              <button onClick={() => setConfirmDelete(null)} className="h-8 px-3 text-sm border border-border rounded-lg hover:bg-muted">Cancelar</button>
               <button
                 onClick={() => handleDelete(confirmDelete)}
                 disabled={deleteStudent.isPending}
