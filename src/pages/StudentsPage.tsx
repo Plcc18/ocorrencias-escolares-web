@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useStudents, useCreateStudent, useUpdateStudent, useDeleteStudent } from '../hooks/useStudents'
 import { useGrades } from '../hooks/useGrades'
 import { useAuth } from '../contexts/AuthContext'
@@ -19,9 +20,13 @@ const INITIAL_FORM: StudentDTO = {
 
 export default function StudentsPage() {
   const { isAdmin } = useAuth()
-  const [filters, setFilters] = useState<StudentFilters>({ page: 0, size: 15 })
+  const [searchParams] = useSearchParams()
+  const initialGradeId = searchParams.get('gradeId') ? Number(searchParams.get('gradeId')) : undefined
+
+  const [filters, setFilters] = useState<StudentFilters>({ page: 0, size: 15, gradeId: initialGradeId })
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
+  const [viewing, setViewing] = useState<Student | null>(null)
   const [editing, setEditing] = useState<Student | null>(null)
   const [form, setForm] = useState<StudentDTO>(INITIAL_FORM)
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
@@ -40,13 +45,28 @@ export default function StudentsPage() {
   const selectedGrade = grades?.find(g => g.id === form.gradeId)
 
   const openCreate = () => {
+    setViewing(null)
     setEditing(null)
     setForm(INITIAL_FORM)
     setShowModal(true)
   }
 
   const openEdit = (student: Student) => {
+    setViewing(null)
     setEditing(student)
+    setForm({
+      name: student.name, enrollment: student.enrollment, gradeId: student.gradeId,
+      shift: student.shift, status: student.status,
+      email: student.email ?? '', birthDate: student.birthDate ?? '',
+      guardian: student.guardian ?? '', guardianPhone: student.guardianPhone ?? '',
+      guardianEmail: student.guardianEmail ?? '', notes: student.notes ?? '',
+    })
+    setShowModal(true)
+  }
+
+  const openView = (student: Student) => {
+    setViewing(student)
+    setEditing(null)
     setForm({
       name: student.name, enrollment: student.enrollment, gradeId: student.gradeId,
       shift: student.shift, status: student.status,
@@ -170,7 +190,11 @@ export default function StudentsPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {students.map(student => (
-                <tr key={student.id} className="hover:bg-muted/30 transition-colors">
+                <tr 
+                  key={student.id} 
+                  onClick={() => openView(student)}
+                  className="hover:bg-muted/30 transition-colors cursor-pointer group"
+                >
                   <td className="px-6 py-3.5">
                     <p className="font-medium text-foreground">{student.name}</p>
                   </td>
@@ -188,13 +212,13 @@ export default function StudentsPage() {
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
-                          onClick={() => openEdit(student)}
+                          onClick={(e) => { e.stopPropagation(); openEdit(student); }}
                           className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <Pencil className="size-3.5" />
                         </button>
                         <button
-                          onClick={() => setConfirmDelete(student.id)}
+                          onClick={(e) => { e.stopPropagation(); setConfirmDelete(student.id); }}
                           className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                         >
                           <Trash2 className="size-3.5" />
@@ -237,13 +261,13 @@ export default function StudentsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-2xl w-full max-w-2xl shadow-xl animate-fadeIn max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h3 className="text-base font-semibold">{editing ? 'Editar Aluno' : 'Novo Aluno'}</h3>
+              <h3 className="text-base font-semibold">{viewing ? 'Detalhes do Aluno' : editing ? 'Editar Aluno' : 'Novo Aluno'}</h3>
               <button onClick={() => setShowModal(false)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
                 <X className="size-4" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="overflow-y-auto">
-              <div className="p-6 grid grid-cols-2 gap-4">
+              <fieldset disabled={!!viewing} className="p-6 grid grid-cols-2 gap-4 border-none m-0">
                 <div className="col-span-2">
                   <label className="text-sm font-medium mb-1.5 block">Nome Completo *</label>
                   <input
@@ -269,7 +293,15 @@ export default function StudentsPage() {
                   <select
                     required
                     value={form.gradeId || ''}
-                    onChange={e => setForm(f => ({ ...f, gradeId: Number(e.target.value) }))}
+                    onChange={e => {
+                      const gradeId = Number(e.target.value)
+                      const grade = grades?.find(g => g.id === gradeId)
+                      setForm(f => ({
+                        ...f,
+                        gradeId,
+                        ...(grade && { shift: grade.shift as GradeShift })
+                      }))
+                    }}
                     className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
                   >
                     <option value="">Selecionar turma</option>
@@ -279,32 +311,24 @@ export default function StudentsPage() {
                   </select>
                 </div>
 
-                {/* Curso derivado da turma — somente leitura */}
+                {/* Curso e Turno derivados da turma — somente leitura */}
                 {selectedGrade && (
-                  <div className="col-span-2">
-                    <label className="text-sm font-medium mb-1.5 block text-muted-foreground">Curso</label>
-                    <div className="w-full h-9 px-3 border border-border rounded-lg text-sm bg-muted/40 flex items-center text-muted-foreground">
-                      <span className="font-medium text-foreground mr-2">{selectedGrade.courseAcronym}</span>
-                      {selectedGrade.courseName}
+                  <>
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block text-muted-foreground">Curso</label>
+                      <div className="w-full h-9 px-3 border border-border rounded-lg text-sm bg-muted/40 flex items-center text-muted-foreground overflow-hidden">
+                        <span className="font-medium text-foreground mr-2">{selectedGrade.courseAcronym}</span>
+                        <span className="truncate">{selectedGrade.courseName}</span>
+                      </div>
                     </div>
-                  </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block text-muted-foreground">Turno</label>
+                      <div className="w-full h-9 px-3 border border-border rounded-lg text-sm bg-muted/40 flex items-center text-foreground font-medium">
+                        {STUDENT_SHIFTS.find(s => s.value === selectedGrade.shift)?.label || selectedGrade.shift}
+                      </div>
+                    </div>
+                  </>
                 )}
-
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">Turno *</label>
-                  <select
-                    value={form.shift}
-                    onChange={e => {
-                      const validShifts: GradeShift[] = ['MANHA', 'TARDE', 'NOITE', 'INTEGRAL']
-                      if (validShifts.includes(e.target.value as GradeShift)) {
-                        setForm(f => ({ ...f, shift: e.target.value as GradeShift }))
-                      }
-                    }}
-                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-                  >
-                    {STUDENT_SHIFTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                  </select>
-                </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Email</label>
                   <input
@@ -316,9 +340,10 @@ export default function StudentsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Data de Nascimento</label>
+                  <label className="text-sm font-medium mb-1.5 block">Data de Nascimento *</label>
                   <input
                     type="date"
+                    required
                     value={form.birthDate}
                     onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))}
                     className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
@@ -340,8 +365,10 @@ export default function StudentsPage() {
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Responsável</p>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium mb-1.5 block">Nome do Responsável</label>
+                      <label className="text-sm font-medium mb-1.5 block">Nome do Responsável *</label>
                       <input
+                        required
+                        maxLength={100}
                         value={form.guardian}
                         onChange={e => setForm(f => ({ ...f, guardian: e.target.value }))}
                         className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
@@ -349,18 +376,34 @@ export default function StudentsPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-1.5 block">Telefone</label>
+                      <label className="text-sm font-medium mb-1.5 block">Telefone *</label>
                       <input
+                        required
+                        maxLength={20}
                         value={form.guardianPhone}
-                        onChange={e => setForm(f => ({ ...f, guardianPhone: e.target.value }))}
+                        onChange={e => {
+                          let v = e.target.value.replace(/\D/g, '')
+                          if (v.length > 11) v = v.substring(0, 11)
+                          let formatted = v
+                          if (v.length > 2) {
+                            formatted = `(${v.substring(0, 2)}) ${v.substring(2)}`
+                          }
+                          if (v.length > 6) {
+                            const prefixLen = v.length === 11 ? 5 : 4
+                            formatted = `(${v.substring(0, 2)}) ${v.substring(2, 2 + prefixLen)}-${v.substring(2 + prefixLen)}`
+                          }
+                          setForm(f => ({ ...f, guardianPhone: formatted }))
+                        }}
                         className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
                         placeholder="(00) 00000-0000"
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-1.5 block">Email do Responsável</label>
+                      <label className="text-sm font-medium mb-1.5 block">Email do Responsável *</label>
                       <input
                         type="email"
+                        required
+                        maxLength={100}
                         value={form.guardianEmail}
                         onChange={e => setForm(f => ({ ...f, guardianEmail: e.target.value }))}
                         className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
@@ -378,24 +421,26 @@ export default function StudentsPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </fieldset>
               <div className="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30 rounded-b-2xl">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
                   className="h-9 px-4 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
                 >
-                  Cancelar
+                  {viewing ? 'Fechar' : 'Cancelar'}
                 </button>
-                <button
-                  type="submit"
-                  disabled={isBusy}
-                  className="h-9 px-4 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2"
-                >
-                  {isBusy ? (
-                    <><div className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> Salvando...</>
-                  ) : (editing ? 'Salvar Alterações' : 'Cadastrar Aluno')}
-                </button>
+                {!viewing && (
+                  <button
+                    type="submit"
+                    disabled={isBusy}
+                    className="h-9 px-4 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                  >
+                    {isBusy ? (
+                      <><div className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> Salvando...</>
+                    ) : (editing ? 'Salvar Alterações' : 'Cadastrar Aluno')}
+                  </button>
+                )}
               </div>
             </form>
           </div>

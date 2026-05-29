@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useGrades, useCreateGrade, useUpdateGrade, useDeleteGrade } from '../hooks/useGrades'
 import { useCourses } from '../hooks/useCourses'
 import { PageHeader } from '../components/common/PageHeader'
@@ -10,6 +11,8 @@ import { Plus, Pencil, Trash2, BookOpen, X, Search, Users } from 'lucide-react'
 const INITIAL_FORM: GradeDTO = { name: '', courseId: 0, shift: 'MANHA' }
 
 export default function GradesPage() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { data: grades, isLoading } = useGrades()
   const { data: courses } = useCourses()
   const createGrade = useCreateGrade()
@@ -19,7 +22,7 @@ export default function GradesPage() {
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Grade | null>(null)
   const [form, setForm] = useState<GradeDTO>(INITIAL_FORM)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchParams.get('course') || '')
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
 
   const filtered = (grades ?? []).filter(g =>
@@ -125,7 +128,8 @@ export default function GradesPage() {
             {filtered.map(grade => (
               <div
                 key={grade.id}
-                className="bg-card border border-border rounded-xl p-5 hover:shadow-sm transition-shadow group"
+                onClick={() => navigate(`/students?gradeId=${grade.id}`)}
+                className="bg-card border border-border rounded-xl p-5 hover:shadow-sm transition-shadow group cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -133,13 +137,13 @@ export default function GradesPage() {
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => openEdit(grade)}
+                      onClick={(e) => { e.stopPropagation(); openEdit(grade); }}
                       className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <Pencil className="size-3.5" />
                     </button>
                     <button
-                      onClick={() => setConfirmDelete(grade.id)}
+                      onClick={(e) => { e.stopPropagation(); setConfirmDelete(grade.id); }}
                       className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                     >
                       <Trash2 className="size-3.5" />

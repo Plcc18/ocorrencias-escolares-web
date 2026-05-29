@@ -1,24 +1,48 @@
 import { useState } from 'react'
-import { useTeachers, useCreateTeacher, useDeleteTeacher } from '../hooks/useTeachers'
+import { useTeachers, useCreateTeacher, useDeleteTeacher, useUpdateTeacher } from '../hooks/useTeachers'
 import { PageHeader } from '../components/common/PageHeader'
 import { EmptyState } from '../components/common/EmptyState'
 import { formatDate } from '../utils/format'
 import { getInitials } from '../utils/format'
-import type { TeacherDTO } from '../types'
-import { Plus, Trash2, Users, X, Search } from 'lucide-react'
+import type { Teacher, TeacherCreateDTO } from '../types/teacher'
+import { Plus, Trash2, Users, X, Search,Pencil, Eye } from 'lucide-react'
 
-const INITIAL_FORM: TeacherDTO = { name: '', email: '', password: '', subject: '' }
+const INITIAL_FORM: TeacherCreateDTO = { name: '', email: '', password: '', subject: '' }
 
 export default function TeachersPage() {
   const { data: teachers, isLoading } = useTeachers()
   const createTeacher = useCreateTeacher()
+  const updateTeacher = useUpdateTeacher()
   const deleteTeacher = useDeleteTeacher()
 
   const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState<TeacherDTO>(INITIAL_FORM)
+  const [viewing, setViewing] = useState<Teacher | null>(null)
+  const [editing, setEditing] = useState<Teacher | null>(null)
+  const [form, setForm] = useState<TeacherCreateDTO>(INITIAL_FORM)
   const [search, setSearch] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
   const [showPass, setShowPass] = useState(false)
+
+  const openCreate = () => {
+    setViewing(null)
+    setEditing(null)
+    setForm(INITIAL_FORM)
+    setShowModal(true)
+  }
+
+  const openView = (teacher: Teacher) => {
+    setViewing(teacher)
+    setEditing(null)
+    setForm({ name: teacher.name, email: teacher.email, password: '••••••••', subject: teacher.subject || '' })
+    setShowModal(true)
+  }
+
+  const openEdit = (teacher: Teacher) => {
+    setViewing(null)
+    setEditing(teacher)
+    setForm({ name: teacher.name, email: teacher.email, password: '', subject: teacher.subject || '' })
+    setShowModal(true)
+  }
 
   const filtered = (teachers ?? []).filter(t =>
     t.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -28,7 +52,11 @@ export default function TeachersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await createTeacher.mutateAsync(form)
+      if (editing) {
+        await updateTeacher.mutateAsync({ id: editing.id, data: form })
+      } else {
+        await createTeacher.mutateAsync(form)
+      }
       setShowModal(false)
       setForm(INITIAL_FORM)
     } catch { /* handled */ }
@@ -45,7 +73,7 @@ export default function TeachersPage() {
     <div className="flex flex-col flex-1 animate-fadeIn">
       <PageHeader title="Professores" description={`${teachers?.length ?? 0} cadastrado(s)`}>
         <button
-          onClick={() => { setForm(INITIAL_FORM); setShowModal(true) }}
+          onClick={openCreate}
           className="h-8 px-3 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1.5"
         >
           <Plus className="size-4" /> Novo Professor
@@ -100,7 +128,11 @@ export default function TeachersPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map(teacher => (
-                <tr key={teacher.id} className="hover:bg-muted/30 transition-colors">
+                <tr 
+                  key={teacher.id} 
+                  onClick={() => openView(teacher)}
+                  className="hover:bg-muted/30 transition-colors cursor-pointer group"
+                >
                   <td className="px-6 py-3.5">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
@@ -114,7 +146,13 @@ export default function TeachersPage() {
                   <td className="px-4 py-3.5 text-muted-foreground">{teacher.createdAt ? formatDate(teacher.createdAt) : '—'}</td>
                   <td className="px-4 py-3.5 text-right">
                     <button
-                      onClick={() => setConfirmDelete(teacher.id)}
+                          onClick={(e) => { e.stopPropagation(); openEdit(teacher); }}
+                          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setConfirmDelete(teacher.id); }}
                       className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                     >
                       <Trash2 className="size-3.5" />
@@ -132,13 +170,13 @@ export default function TeachersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-xl animate-fadeIn">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h3 className="text-base font-semibold">Novo Professor</h3>
+              <h3 className="text-base font-semibold">{viewing ? 'Detalhes do Professor' : editing ? 'Editar Professor' : 'Novo Professor'}</h3>
               <button onClick={() => setShowModal(false)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
                 <X className="size-4" />
               </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="p-6 space-y-4">
+              <fieldset disabled={!!viewing} className="p-6 space-y-4 border-none m-0">
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Nome Completo *</label>
                   <input
@@ -160,23 +198,25 @@ export default function TeachersPage() {
                     className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">Senha *</label>
-                  <div className="relative">
-                    <input
-                      required
-                      type={showPass ? 'text' : 'password'}
-                      value={form.password}
-                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                      placeholder="Senha de acesso"
-                      minLength={6}
-                      className="w-full h-9 px-3 pr-10 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-                    />
-                    <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground">
-                      {showPass ? 'ocultar' : 'mostrar'}
-                    </button>
+                {!editing && (
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Senha *</label>
+                    <div className="relative">
+                      <input
+                        required
+                        type={showPass ? 'text' : 'password'}
+                        value={form.password}
+                        onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                        placeholder="Senha de acesso"
+                        minLength={6}
+                        className="w-full h-9 px-3 pr-10 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+                      />
+                      <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground">
+                        {showPass ? 'ocultar' : 'mostrar'}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Disciplina</label>
                   <input
@@ -186,20 +226,22 @@ export default function TeachersPage() {
                     className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
                   />
                 </div>
-              </div>
+              </fieldset>
               <div className="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30 rounded-b-2xl">
                 <button type="button" onClick={() => setShowModal(false)} className="h-9 px-4 text-sm border border-border rounded-lg hover:bg-muted">
-                  Cancelar
+                  {viewing ? 'Fechar' : 'Cancelar'}
                 </button>
-                <button
-                  type="submit"
-                  disabled={createTeacher.isPending}
-                  className="h-9 px-4 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {createTeacher.isPending ? (
-                    <><div className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> Salvando...</>
-                  ) : 'Cadastrar'}
-                </button>
+                {!viewing && (
+                  <button
+                    type="submit"
+                    disabled={createTeacher.isPending || updateTeacher.isPending}
+                    className="h-9 px-4 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {createTeacher.isPending || updateTeacher.isPending ? (
+                      <><div className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> Salvando...</>
+                    ) : (editing ? 'Salvar' : 'Cadastrar')}
+                  </button>
+                )}
               </div>
             </form>
           </div>

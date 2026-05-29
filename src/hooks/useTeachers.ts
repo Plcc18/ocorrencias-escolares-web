@@ -22,6 +22,18 @@ export function useCreateTeacher() {
   })
 }
 
+export function useUpdateTeacher() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Omit<TeacherDTO, 'password'> }) => 
+      teachersService.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['teachers'] })
+      toast.success('Professor atualizado com sucesso!')
+    },
+  })
+}
+
 export function useDeleteTeacher() {
   const qc = useQueryClient()
   return useMutation({

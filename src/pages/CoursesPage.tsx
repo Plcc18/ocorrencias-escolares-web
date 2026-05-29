@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useCourses, useCreateCourse, useUpdateCourse, useDeleteCourse } from '../hooks/useCourses'
 import { PageHeader } from '../components/common/PageHeader'
 import { EmptyState } from '../components/common/EmptyState'
@@ -8,6 +9,7 @@ import { Plus, Pencil, Trash2, BookMarked, X, Search } from 'lucide-react'
 const INITIAL_FORM: CourseDTO = { name: '', acronym: '' }
 
 export default function CoursesPage() {
+  const navigate = useNavigate()
   const { data: courses, isLoading } = useCourses()
   const createCourse = useCreateCourse()
   const updateCourse = useUpdateCourse()
@@ -120,7 +122,8 @@ export default function CoursesPage() {
             {filtered.map(course => (
               <div
                 key={course.id}
-                className="bg-card border border-border rounded-xl p-5 hover:shadow-sm transition-shadow group"
+                onClick={() => navigate(`/grades?course=${encodeURIComponent(course.acronym)}`)}
+                className="bg-card border border-border rounded-xl p-5 hover:shadow-sm transition-shadow group cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -128,13 +131,13 @@ export default function CoursesPage() {
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => openEdit(course)}
+                      onClick={(e) => { e.stopPropagation(); openEdit(course); }}
                       className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <Pencil className="size-3.5" />
                     </button>
                     <button
-                      onClick={() => setConfirmDelete(course.id)}
+                      onClick={(e) => { e.stopPropagation(); setConfirmDelete(course.id); }}
                       className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                     >
                       <Trash2 className="size-3.5" />
