@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useGrades, useCreateGrade, useUpdateGrade, useDeleteGrade } from '../hooks/useGrades'
 import { useCourses } from '../hooks/useCourses'
@@ -8,7 +8,30 @@ import { GRADE_SHIFTS, SHIFT_LABELS, SHIFT_COLORS } from '../utils/occurrenceTyp
 import type { Grade, GradeDTO } from '../types'
 import { Plus, Pencil, Trash2, BookOpen, X, Search, Users } from 'lucide-react'
 
-const INITIAL_FORM: GradeDTO = { name: '', courseId: 0, shift: 'MANHA' }
+const currentYear = new Date().getFullYear()
+const HISTORY_YEARS = 2
+
+const YEAR_OPTIONS = Array.from(
+  { length: HISTORY_YEARS + 1 },
+  (_, i) => currentYear - HISTORY_YEARS + i
+)
+
+const INITIAL_FORM: GradeDTO = {
+  gradeLevel: 1,
+  schoolYear: currentYear,
+  courseId: 0,
+  shift: 'MANHA',
+}
+
+function buildDisplayName(gradeLevel: number, courseAcronym: string, schoolYear: number, shift: GradeDTO['shift']): string {
+  if (!courseAcronym) return `${gradeLevel}º - ${schoolYear}`
+  const base = `${gradeLevel}º ${courseAcronym} - ${schoolYear}`
+  if (shift && shift !== 'MANHA') {
+    const labels: Record<string, string> = { TARDE: 'Tarde', NOITE: 'Noite', INTEGRAL: 'Integral' }
+    return `${base} (${labels[shift]})`
+  }
+  return base
+}
 
 export default function GradesPage() {
   const navigate = useNavigate()
@@ -25,11 +48,20 @@ export default function GradesPage() {
   const [search, setSearch] = useState(searchParams.get('course') || '')
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
 
-  const filtered = (grades ?? []).filter(g =>
-    g.name.toLowerCase().includes(search.toLowerCase()) ||
-    g.courseName.toLowerCase().includes(search.toLowerCase()) ||
-    g.courseAcronym.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = (grades ?? []).filter(g => {
+    const q = search.toLowerCase()
+    return (
+      g.displayName.toLowerCase().includes(q) ||
+      g.courseName.toLowerCase().includes(q) ||
+      g.courseAcronym.toLowerCase().includes(q) ||
+      String(g.schoolYear).includes(q)
+    )
+  })
+
+  const selectedCourse = courses?.find(c => c.id === form.courseId)
+  const previewName = selectedCourse
+    ? buildDisplayName(form.gradeLevel, selectedCourse.acronym, form.schoolYear, form.shift)
+    : null
 
   const openCreate = () => {
     setEditing(null)
@@ -39,7 +71,12 @@ export default function GradesPage() {
 
   const openEdit = (grade: Grade) => {
     setEditing(grade)
-    setForm({ name: grade.name, courseId: grade.courseId, shift: grade.shift })
+    setForm({
+      gradeLevel: grade.gradeLevel,
+      schoolYear: grade.schoolYear,
+      courseId: grade.courseId,
+      shift: grade.shift,
+    })
     setShowModal(true)
   }
 
@@ -83,7 +120,7 @@ export default function GradesPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar turma ou curso..."
+            placeholder="Buscar turma, curso ou ano..."
             className="w-full h-8 pl-8 pr-3 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
           />
           {search && (
@@ -151,7 +188,7 @@ export default function GradesPage() {
                   </div>
                 </div>
 
-                <h3 className="text-sm font-semibold text-foreground mb-0.5">{grade.name}</h3>
+                <h3 className="text-sm font-semibold text-foreground mb-0.5">{grade.displayName}</h3>
                 <p className="text-xs text-muted-foreground mb-3">
                   <span className="font-medium text-foreground/70">{grade.courseAcronym}</span>
                   {' · '}{grade.courseName}
@@ -190,17 +227,16 @@ export default function GradesPage() {
 
             <form onSubmit={handleSubmit}>
               <div className="p-6 space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">Nome da Turma *</label>
-                  <input
-                    required
-                    value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="Ex: 3º DS A, 1º ADM B..."
-                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-                  />
-                </div>
 
+                {/* Preview do nome */}
+                {previewName && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-3">
+                    <p className="text-xs text-primary font-medium uppercase tracking-wider mb-0.5">Nome</p>
+                    <p className="text-sm font-semibold text-foreground">{previewName}</p>
+                  </div>
+                )}
+
+                {/* Curso */}
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Curso *</label>
                   <select
@@ -214,13 +250,46 @@ export default function GradesPage() {
                       <option key={c.id} value={c.id}>{c.acronym} — {c.name}</option>
                     ))}
                   </select>
-                  {(!courses || courses.length === 0) && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Nenhum curso cadastrado. Cadastre um curso primeiro.
-                    </p>
-                  )}
                 </div>
 
+                {/* Série + Ano na mesma linha */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Série *</label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[1, 2, 3].map(n => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, gradeLevel: n }))}
+                          className={`h-9 text-sm rounded-lg border font-medium transition-all ${
+                            form.gradeLevel === n
+                              ? 'border-primary bg-primary/5 text-primary ring-1 ring-primary'
+                              : 'border-border hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          {n}º
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Ano letivo *</label>
+                    <select
+                      required
+                      value={form.schoolYear}
+                      onChange={e => setForm(f => ({ ...f, schoolYear: Number(e.target.value) }))}
+                      className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+                    >
+                      {YEAR_OPTIONS.map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Turno */}
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Turno *</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -274,7 +343,7 @@ export default function GradesPage() {
           <div className="bg-card border border-border rounded-xl p-6 w-full max-w-sm shadow-xl animate-fadeIn">
             <h3 className="font-semibold text-foreground mb-2">Remover turma?</h3>
             <p className="text-sm text-muted-foreground mb-5">
-              Os alunos e ocorrências relacionados podem ser afetados. Esta ação não pode ser desfeita.
+              Remova ou transfira os alunos antes de excluir esta turma. Esta ação não pode ser desfeita.
             </p>
             <div className="flex gap-2 justify-end">
               <button

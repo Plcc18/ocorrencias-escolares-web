@@ -2,7 +2,9 @@ export type GradeShift = 'MANHA' | 'TARDE' | 'NOITE' | 'INTEGRAL'
 
 export interface Grade {
   id: number
-  name: string
+  gradeLevel: number        
+  schoolYear: number        
+  displayName: string
   courseId: number
   courseName: string
   courseAcronym: string
@@ -13,7 +15,8 @@ export interface Grade {
 }
 
 export interface GradeDTO {
-  name: string
+  gradeLevel: number
+  schoolYear: number
   courseId: number
   shift: GradeShift
 }

@@ -100,7 +100,7 @@ export default function NewOccurrencePage() {
             >
               <option value="">Selecione a turma...</option>
               {grades?.map(g => (
-                <option key={g.id} value={g.id}>{g.name} — {g.courseAcronym}</option>
+                <option key={g.id} value={g.id}>{g.displayName} — {g.courseAcronym}</option>
               ))}
             </select>
           </div>
@@ -112,7 +112,7 @@ export default function NewOccurrencePage() {
                 {studentId ? <CheckCircle2 className="size-4" /> : '2'}
               </div>
               <h3 className="text-sm font-semibold">Selecionar Aluno</h3>
-              {selectedGrade && <span className="text-xs text-muted-foreground ml-1">— {selectedGrade.name}</span>}
+              {selectedGrade && <span className="text-xs text-muted-foreground ml-1">— {selectedGrade.displayName}</span>}
             </div>
 
             {gradeId && (
@@ -247,7 +247,7 @@ export default function NewOccurrencePage() {
               <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Resumo</p>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div><span className="text-muted-foreground">Aluno:</span><span className="ml-2 font-medium">{selectedStudent?.name}</span></div>
-                <div><span className="text-muted-foreground">Turma:</span><span className="ml-2 font-medium">{selectedGrade?.name}</span></div>
+                <div><span className="text-muted-foreground">Turma:</span><span className="ml-2 font-medium">{selectedGrade?.displayName}</span></div>
                 <div><span className="text-muted-foreground">Tipo:</span><span className="ml-2">{occurrenceType && <OccurrenceBadge type={occurrenceType} />}</span></div>
                 <div><span className="text-muted-foreground">Professor:</span><span className="ml-2 font-medium">{selectedTeacher?.name}</span></div>
               </div>

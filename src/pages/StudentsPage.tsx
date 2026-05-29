@@ -137,7 +137,7 @@ export default function StudentsPage() {
           className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
         >
           <option value="">Todas as turmas</option>
-          {grades?.map(g => <option key={g.id} value={g.id}>{g.name} — {g.courseAcronym}</option>)}
+          {grades?.map(g => <option key={g.id} value={g.id}>{g.displayName} — {g.courseAcronym}</option>)}
         </select>
         <select
           value={filters.status ?? ''}
@@ -306,7 +306,7 @@ export default function StudentsPage() {
                   >
                     <option value="">Selecionar turma</option>
                     {grades?.map(g => (
-                      <option key={g.id} value={g.id}>{g.name} — {g.courseAcronym}</option>
+                      <option key={g.id} value={g.id}>{g.displayName}</option>
                     ))}
                   </select>
                 </div>
