@@ -52,7 +52,7 @@ export default function OccurrencesPage() {
           className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
         >
           <option value="">Todas as turmas</option>
-          {grades?.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          {grades?.map(g => <option key={g.id} value={g.id}>{g.displayName}</option>)}
         </select>
 
         {isAdmin && (

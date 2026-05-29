@@ -100,7 +100,7 @@ export default function NewOccurrencePage() {
             >
               <option value="">Selecione a turma...</option>
               {grades?.map(g => (
-                <option key={g.id} value={g.id}>{g.displayName} — {g.courseAcronym}</option>
+                <option key={g.id} value={g.id}>{g.displayName}</option>
               ))}
             </select>
           </div>

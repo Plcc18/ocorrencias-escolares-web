@@ -14,6 +14,7 @@ import GradesPage from './pages/GradesPage'
 import CoursesPage from './pages/CoursesPage'
 import OccurrencesPage from './pages/OccurrencesPage'
 import NewOccurrencePage from './pages/NewOccurrencePage'
+import PromotionPage from './pages/PromotionPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,7 +54,11 @@ export default function App() {
                   <Route path="/teachers" element={<TeachersPage />} />
                   <Route path="/grades" element={<GradesPage />} />
                   <Route path="/courses" element={<CoursesPage />} />
+                  <Route path="/promotion" element={<PromotionPage />} /> 
+                  
                 </Route>
+
+               
               </Route>
             </Route>
 

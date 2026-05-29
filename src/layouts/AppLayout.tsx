@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { getInitials } from '../utils/format'
 import { cn } from '../lib/utils'
+import { TrendingUp } from 'lucide-react'
 
 interface NavItemProps {
   to: string
@@ -77,6 +78,7 @@ export function AppLayout() {
               <NavItem to="/teachers" icon={<Users className="size-4" />} label="Professores" />
               <NavItem to="/courses" icon={<BookMarked className="size-4" />} label="Cursos" />
               <NavItem to="/grades" icon={<BookOpen className="size-4" />} label="Turmas" />
+              <NavItem to="/promotion" icon={<TrendingUp className="size-4" />} label="Promoções" />
             </>
           )}
         </nav>
