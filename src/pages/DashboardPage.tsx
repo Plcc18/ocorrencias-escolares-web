@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useOccurrences } from '../hooks/useOccurrences'
 import { useStudents } from '../hooks/useStudents'
 import { useTeachers } from '../hooks/useTeachers'
 import { useGrades } from '../hooks/useGrades'
 import { OccurrenceBadge } from '../components/common/OccurrenceBadge'
+import { OccurrenceDetailModal } from '../components/occurrences/OccurrenceDetailModal'
 import { formatDate } from '../utils/format'
+import type { Occurrence } from '../types'
 import { FileWarning, GraduationCap, Users, BookOpen, TrendingUp, Clock, Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -40,6 +43,8 @@ export default function DashboardPage() {
   const { data: studentsData, isLoading: loadingStudents } = useStudents({})
   const { data: teachers, isLoading: loadingTeachers } = useTeachers()
   const { data: grades, isLoading: loadingGrades } = useGrades()
+
+  const [selectedOccurrence, setSelectedOccurrence] = useState<Occurrence | null>(null)
 
   const recentOccurrences = occurrencesData?.content ?? []
   const totalStudents = studentsData?.totalElements ?? 0
@@ -134,19 +139,30 @@ export default function DashboardPage() {
           ) : (
             <div className="divide-y divide-border">
               {recentOccurrences.map(occ => (
-                <div key={occ.id} className="px-5 py-3.5 flex items-center gap-4 hover:bg-muted/30 transition-colors">
+                <button
+                  key={occ.id}
+                  onClick={() => setSelectedOccurrence(occ)}
+                  className="w-full text-left px-5 py-3.5 flex items-center gap-4 hover:bg-muted/30 transition-colors group"
+                >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{occ.studentName}</p>
                     <p className="text-xs text-muted-foreground truncate">{occ.gradeName} • {occ.teacherName}</p>
                   </div>
                   <OccurrenceBadge type={occ.occurrenceType} />
                   <p className="text-xs text-muted-foreground shrink-0">{formatDate(occ.occurrenceDate)}</p>
-                </div>
+                </button>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {selectedOccurrence && (
+        <OccurrenceDetailModal
+          occurrence={selectedOccurrence}
+          onClose={() => setSelectedOccurrence(null)}
+        />
+      )}
     </div>
   )
 }

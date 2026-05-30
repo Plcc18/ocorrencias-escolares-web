@@ -24,6 +24,7 @@ export default function StudentsPage() {
   const initialGradeId = searchParams.get('gradeId') ? Number(searchParams.get('gradeId')) : undefined
 
   const [filters, setFilters] = useState<StudentFilters>({ page: 0, size: 15, gradeId: initialGradeId })
+  // single search field covers both name and enrollment
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [viewing, setViewing] = useState<Student | null>(null)
@@ -41,7 +42,6 @@ export default function StudentsPage() {
   const totalPages = data?.totalPages ?? 0
   const currentPage = filters.page ?? 0
 
-  // When grade changes in form, auto-set shift from grade info if needed
   const selectedGrade = grades?.find(g => g.id === form.gradeId)
 
   const openCreate = () => {
@@ -117,12 +117,12 @@ export default function StudentsPage() {
 
       {/* Filters */}
       <div className="px-6 py-3 border-b border-border bg-background flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-48 max-w-72">
+        <div className="relative flex-1 min-w-48 max-w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <input
             value={search}
             onChange={e => { setSearch(e.target.value); setFilters(f => ({ ...f, page: 0 })) }}
-            placeholder="Buscar por nome..."
+            placeholder="Buscar por nome ou matrícula..."
             className="w-full h-8 pl-8 pr-3 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
           />
           {search && (
@@ -167,7 +167,7 @@ export default function StudentsPage() {
           <EmptyState
             icon={<GraduationCap className="size-6" />}
             title="Nenhum aluno encontrado"
-            description={search ? 'Tente outro termo de busca.' : 'Cadastre o primeiro aluno.'}
+            description={search ? `Nenhum resultado para "${search}". Tente o nome completo ou a matrícula exata.` : 'Cadastre o primeiro aluno.'}
             action={isAdmin ? (
               <button onClick={openCreate} className="h-8 px-3 bg-primary text-primary-foreground text-sm rounded-lg hover:bg-primary/90">
                 <Plus className="size-3.5 inline mr-1" /> Cadastrar
@@ -190,15 +190,15 @@ export default function StudentsPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {students.map(student => (
-                <tr 
-                  key={student.id} 
+                <tr
+                  key={student.id}
                   onClick={() => openView(student)}
                   className="hover:bg-muted/30 transition-colors cursor-pointer group"
                 >
                   <td className="px-6 py-3.5">
                     <p className="font-medium text-foreground">{student.name}</p>
                   </td>
-                  <td className="px-4 py-3.5 text-muted-foreground">{student.enrollment}</td>
+                  <td className="px-4 py-3.5 text-muted-foreground font-mono text-xs">{student.enrollment}</td>
                   <td className="px-4 py-3.5 text-foreground">{student.gradeName}</td>
                   <td className="px-4 py-3.5">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
@@ -210,15 +210,15 @@ export default function StudentsPage() {
                   <td className="px-4 py-3.5 text-muted-foreground text-xs">{student.guardian || '-'}</td>
                   {isAdmin && (
                     <td className="px-4 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={(e) => { e.stopPropagation(); openEdit(student); }}
+                          onClick={(e) => { e.stopPropagation(); openEdit(student) }}
                           className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <Pencil className="size-3.5" />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); setConfirmDelete(student.id); }}
+                          onClick={(e) => { e.stopPropagation(); setConfirmDelete(student.id) }}
                           className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                         >
                           <Trash2 className="size-3.5" />
@@ -256,15 +256,28 @@ export default function StudentsPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal (view / edit / create) */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-2xl w-full max-w-2xl shadow-xl animate-fadeIn max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h3 className="text-base font-semibold">{viewing ? 'Detalhes do Aluno' : editing ? 'Editar Aluno' : 'Novo Aluno'}</h3>
-              <button onClick={() => setShowModal(false)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
-                <X className="size-4" />
-              </button>
+              <h3 className="text-base font-semibold">
+                {viewing ? 'Detalhes do Aluno' : editing ? 'Editar Aluno' : 'Novo Aluno'}
+              </h3>
+              <div className="flex items-center gap-2">
+                {/* ADMIN can switch from view to edit */}
+                {viewing && isAdmin && (
+                  <button
+                    onClick={() => { openEdit(viewing) }}
+                    className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+                  >
+                    <Pencil className="size-3.5" /> Editar
+                  </button>
+                )}
+                <button onClick={() => setShowModal(false)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
+                  <X className="size-4" />
+                </button>
+              </div>
             </div>
             <form onSubmit={handleSubmit} className="overflow-y-auto">
               <fieldset disabled={!!viewing} className="p-6 grid grid-cols-2 gap-4 border-none m-0">
@@ -284,7 +297,7 @@ export default function StudentsPage() {
                     required
                     value={form.enrollment}
                     onChange={e => setForm(f => ({ ...f, enrollment: e.target.value }))}
-                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 font-mono"
                     placeholder="Ex: 2024001"
                   />
                 </div>
@@ -311,7 +324,6 @@ export default function StudentsPage() {
                   </select>
                 </div>
 
-                {/* Curso e Turno derivados da turma — somente leitura */}
                 {selectedGrade && (
                   <>
                     <div>
@@ -365,7 +377,7 @@ export default function StudentsPage() {
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Responsável</p>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium mb-1.5 block">Nome do Responsável *</label>
+                      <label className="text-sm font-medium mb-1.5 block">Nome *</label>
                       <input
                         required
                         maxLength={100}
@@ -385,9 +397,7 @@ export default function StudentsPage() {
                           let v = e.target.value.replace(/\D/g, '')
                           if (v.length > 11) v = v.substring(0, 11)
                           let formatted = v
-                          if (v.length > 2) {
-                            formatted = `(${v.substring(0, 2)}) ${v.substring(2)}`
-                          }
+                          if (v.length > 2) formatted = `(${v.substring(0, 2)}) ${v.substring(2)}`
                           if (v.length > 6) {
                             const prefixLen = v.length === 11 ? 5 : 4
                             formatted = `(${v.substring(0, 2)}) ${v.substring(2, 2 + prefixLen)}-${v.substring(2 + prefixLen)}`
@@ -399,7 +409,7 @@ export default function StudentsPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-1.5 block">Email do Responsável *</label>
+                      <label className="text-sm font-medium mb-1.5 block">Email *</label>
                       <input
                         type="email"
                         required
@@ -430,7 +440,7 @@ export default function StudentsPage() {
                 >
                   {viewing ? 'Fechar' : 'Cancelar'}
                 </button>
-                {!viewing && (
+                {!viewing && isAdmin && (
                   <button
                     type="submit"
                     disabled={isBusy}

@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useTeachers, useCreateTeacher, useDeleteTeacher, useUpdateTeacher } from '../hooks/useTeachers'
 import { PageHeader } from '../components/common/PageHeader'
 import { EmptyState } from '../components/common/EmptyState'
-import { formatDate } from '../utils/format'
-import { getInitials } from '../utils/format'
+import { formatDate, getInitials } from '../utils/format'
 import type { Teacher, TeacherCreateDTO } from '../types/teacher'
-import { Plus, Trash2, Users, X, Search,Pencil, Eye } from 'lucide-react'
+import { api } from '../api/axios'
+import toast from 'react-hot-toast'
+import { Plus, Trash2, Users, X, Search, Pencil, KeyRound, Eye, EyeOff } from 'lucide-react'
 
 const INITIAL_FORM: TeacherCreateDTO = { name: '', email: '', password: '', subject: '' }
 
@@ -22,6 +23,12 @@ export default function TeachersPage() {
   const [search, setSearch] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
   const [showPass, setShowPass] = useState(false)
+
+  // Password change state
+  const [pwTeacher, setPwTeacher] = useState<Teacher | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [showNewPass, setShowNewPass] = useState(false)
+  const [savingPw, setSavingPw] = useState(false)
 
   const openCreate = () => {
     setViewing(null)
@@ -42,6 +49,13 @@ export default function TeachersPage() {
     setEditing(teacher)
     setForm({ name: teacher.name, email: teacher.email, password: '', subject: teacher.subject || '' })
     setShowModal(true)
+  }
+
+  const openPasswordChange = (teacher: Teacher, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    setPwTeacher(teacher)
+    setNewPassword('')
+    setShowNewPass(false)
   }
 
   const filtered = (teachers ?? []).filter(t =>
@@ -67,6 +81,22 @@ export default function TeachersPage() {
       await deleteTeacher.mutateAsync(id)
       setConfirmDelete(null)
     } catch { /* handled */ }
+  }
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!pwTeacher || newPassword.length < 6) return
+    setSavingPw(true)
+    try {
+      await api.patch(`/teachers/${pwTeacher.id}/password`, { newPassword })
+      toast.success(`Senha de ${pwTeacher.name} alterada com sucesso!`)
+      setPwTeacher(null)
+      setNewPassword('')
+    } catch {
+      // handled by axios interceptor
+    } finally {
+      setSavingPw(false)
+    }
   }
 
   return (
@@ -110,7 +140,7 @@ export default function TeachersPage() {
             icon={<Users className="size-6" />}
             title="Nenhum professor encontrado"
             action={
-              <button onClick={() => setShowModal(true)} className="h-8 px-3 bg-primary text-primary-foreground text-sm rounded-lg hover:bg-primary/90">
+              <button onClick={openCreate} className="h-8 px-3 bg-primary text-primary-foreground text-sm rounded-lg hover:bg-primary/90">
                 <Plus className="size-3.5 inline mr-1" /> Cadastrar
               </button>
             }
@@ -128,8 +158,8 @@ export default function TeachersPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map(teacher => (
-                <tr 
-                  key={teacher.id} 
+                <tr
+                  key={teacher.id}
                   onClick={() => openView(teacher)}
                   className="hover:bg-muted/30 transition-colors cursor-pointer group"
                 >
@@ -145,18 +175,29 @@ export default function TeachersPage() {
                   <td className="px-4 py-3.5 text-muted-foreground">{teacher.subject || '—'}</td>
                   <td className="px-4 py-3.5 text-muted-foreground">{teacher.createdAt ? formatDate(teacher.createdAt) : '—'}</td>
                   <td className="px-4 py-3.5 text-right">
-                    <button
-                          onClick={(e) => { e.stopPropagation(); openEdit(teacher); }}
-                          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <Pencil className="size-3.5" />
-                        </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setConfirmDelete(teacher.id); }}
-                      className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openPasswordChange(teacher, e) }}
+                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        title="Alterar senha"
+                      >
+                        <KeyRound className="size-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openEdit(teacher) }}
+                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        title="Editar"
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmDelete(teacher.id) }}
+                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        title="Remover"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -165,15 +206,27 @@ export default function TeachersPage() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Create / Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-xl animate-fadeIn">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h3 className="text-base font-semibold">{viewing ? 'Detalhes do Professor' : editing ? 'Editar Professor' : 'Novo Professor'}</h3>
-              <button onClick={() => setShowModal(false)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
-                <X className="size-4" />
-              </button>
+              <h3 className="text-base font-semibold">
+                {viewing ? 'Detalhes do Professor' : editing ? 'Editar Professor' : 'Novo Professor'}
+              </h3>
+              <div className="flex items-center gap-2">
+                {viewing && (
+                  <button
+                    onClick={() => openEdit(viewing)}
+                    className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5 text-muted-foreground"
+                  >
+                    <Pencil className="size-3.5" /> Editar
+                  </button>
+                )}
+                <button onClick={() => setShowModal(false)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
+                  <X className="size-4" />
+                </button>
+              </div>
             </div>
             <form onSubmit={handleSubmit}>
               <fieldset disabled={!!viewing} className="p-6 space-y-4 border-none m-0">
@@ -198,7 +251,7 @@ export default function TeachersPage() {
                     className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
                   />
                 </div>
-                {!editing && (
+                {!editing && !viewing && (
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">Senha *</label>
                     <div className="relative">
@@ -248,6 +301,81 @@ export default function TeachersPage() {
         </div>
       )}
 
+      {/* Password Change Modal */}
+      {pwTeacher && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-sm shadow-xl animate-fadeIn">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <div>
+                <h3 className="text-base font-semibold">Alterar Senha</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{pwTeacher.name}</p>
+              </div>
+              <button
+                onClick={() => setPwTeacher(null)}
+                className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePasswordChange}>
+              <div className="p-6 space-y-4">
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+                  A nova senha será usada pelo professor para fazer login no sistema.
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Nova Senha *</label>
+                  <div className="relative">
+                    <input
+                      required
+                      type={showNewPass ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      minLength={6}
+                      placeholder="Mínimo 6 caracteres"
+                      className="w-full h-9 px-3 pr-20 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPass(!showNewPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                    >
+                      {showNewPass ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                      {showNewPass ? 'ocultar' : 'mostrar'}
+                    </button>
+                  </div>
+                  {newPassword.length > 0 && newPassword.length < 6 && (
+                    <p className="text-xs text-destructive mt-1">Mínimo 6 caracteres ({newPassword.length}/6)</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30 rounded-b-2xl">
+                <button
+                  type="button"
+                  onClick={() => setPwTeacher(null)}
+                  className="h-9 px-4 text-sm border border-border rounded-lg hover:bg-muted"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingPw || newPassword.length < 6}
+                  className="h-9 px-4 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {savingPw ? (
+                    <><div className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> Salvando...</>
+                  ) : (
+                    <><KeyRound className="size-3.5" /> Alterar Senha</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-xl p-6 w-full max-w-sm shadow-xl animate-fadeIn">

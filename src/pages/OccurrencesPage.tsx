@@ -7,14 +7,17 @@ import { useAuth } from '../contexts/AuthContext'
 import { OccurrenceBadge } from '../components/common/OccurrenceBadge'
 import { EmptyState } from '../components/common/EmptyState'
 import { PageHeader } from '../components/common/PageHeader'
+import { OccurrenceDetailModal } from '../components/occurrences/OccurrenceDetailModal'
 import { formatDate } from '../utils/format'
 import { OCCURRENCE_TYPES } from '../utils/occurrenceTypes'
-import type { OccurrenceFilters } from '../types'
+import type { Occurrence, OccurrenceFilters } from '../types'
 import { Plus, FileWarning, X, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function OccurrencesPage() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, isTeacher } = useAuth()
+  const canEdit = isAdmin || isTeacher
   const [filters, setFilters] = useState<OccurrenceFilters>({ page: 0, size: 20 })
+  const [selectedOccurrence, setSelectedOccurrence] = useState<Occurrence | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
 
   const { data, isLoading } = useOccurrences(filters)
@@ -30,6 +33,7 @@ export default function OccurrencesPage() {
     try {
       await deleteOccurrence.mutateAsync(id)
       setConfirmDelete(null)
+      if (selectedOccurrence?.id === id) setSelectedOccurrence(null)
     } catch { /* handled */ }
   }
 
@@ -144,7 +148,11 @@ export default function OccurrencesPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {occurrences.map(occ => (
-                <tr key={occ.id} className="hover:bg-muted/30 transition-colors">
+                <tr
+                  key={occ.id}
+                  onClick={() => setSelectedOccurrence(occ)}
+                  className="hover:bg-muted/30 transition-colors cursor-pointer group"
+                >
                   <td className="px-6 py-3.5 font-medium text-foreground">{occ.studentName}</td>
                   <td className="px-4 py-3.5"><OccurrenceBadge type={occ.occurrenceType} /></td>
                   <td className="px-4 py-3.5 text-muted-foreground">{occ.gradeName}</td>
@@ -156,8 +164,8 @@ export default function OccurrencesPage() {
                   {isAdmin && (
                     <td className="px-4 py-3.5 text-right">
                       <button
-                        onClick={() => setConfirmDelete(occ.id)}
-                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        onClick={(e) => { e.stopPropagation(); setConfirmDelete(occ.id) }}
+                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 className="size-3.5" />
                       </button>
@@ -193,6 +201,14 @@ export default function OccurrencesPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Occurrence Detail Modal */}
+      {selectedOccurrence && (
+        <OccurrenceDetailModal
+          occurrence={selectedOccurrence}
+          onClose={() => setSelectedOccurrence(null)}
+        />
       )}
 
       {/* Confirm Delete */}

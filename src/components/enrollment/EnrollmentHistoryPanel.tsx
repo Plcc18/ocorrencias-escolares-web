@@ -1,10 +1,10 @@
-import { useEnrollmentHistory } from '../hooks/useEnrollment'
-import { useGrades } from '../hooks/useGrades'
-import { usePromoteStudent } from '../hooks/useEnrollment'
-import { formatDate } from '../utils/format'
+import { useEnrollmentHistory } from '../../hooks/useEnrollment'
+import { useGrades } from '../../hooks/useGrades'
+import { usePromoteStudent } from '../../hooks/useEnrollment'
+import { formatDate } from '../../utils/format'
 import { useState } from 'react'
 import { ArrowRight, BookOpen, CheckCircle2, Clock, GraduationCap, X } from 'lucide-react'
-import type { Grade } from '../types'
+import type { Grade } from '../../types'
 
 const REASON_LABELS: Record<string, { label: string; color: string }> = {
   MATRICULA:     { label: 'Matrícula inicial', color: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
