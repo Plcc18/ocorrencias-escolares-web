@@ -120,11 +120,26 @@ export default function TeachersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (form.subjects.length === 0) { toast.error('Adicione pelo menos uma disciplina.'); return }
+    const payload = {
+      ...form,
+      name: form.name.trim(),
+      email: form.email.trim().toLowerCase(),
+      password: form.password,
+      subjects: form.subjects.map(s => s.trim()).filter(Boolean),
+    }
+    if (!payload.name || !payload.email) {
+      toast.error('Informe nome e e-mail do professor.')
+      return
+    }
+    if (!editing && payload.password.length < 6) {
+      toast.error('A senha deve ter pelo menos 6 caracteres.')
+      return
+    }
     try {
       if (editing) {
-        await updateTeacher.mutateAsync({ id: editing.id, data: form })
+        await updateTeacher.mutateAsync({ id: editing.id, data: payload })
       } else {
-        await createTeacher.mutateAsync(form)
+        await createTeacher.mutateAsync(payload)
       }
       setShowModal(false); setForm(INITIAL_FORM)
     } catch { /* handled */ }

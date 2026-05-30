@@ -7,6 +7,7 @@ import { StatusBadge } from '../components/common/StatusBadge'
 import { EmptyState } from '../components/common/EmptyState'
 import { PageHeader } from '../components/common/PageHeader'
 import { STUDENT_SHIFTS } from '../utils/occurrenceTypes'
+import { todayISO } from '../utils/format'
 import type { Student, StudentDTO, StudentFilters, GradeShift } from '../types'
 import {
   Search, Plus, Pencil, Trash2, GraduationCap, X, ChevronLeft, ChevronRight
@@ -43,6 +44,8 @@ export default function StudentsPage() {
   const currentPage = filters.page ?? 0
 
   const selectedGrade = grades?.find(g => g.id === form.gradeId)
+  const isBirthDateFuture = !!form.birthDate && form.birthDate > todayISO()
+  const hasInvalidGuardianPhone = !!form.guardianPhone && form.guardianPhone.replace(/\D/g, '').length < 10
 
   const openCreate = () => {
     setViewing(null)
@@ -83,11 +86,29 @@ export default function StudentsPage() {
       toast.error('Selecione uma turma.')
       return
     }
+    if (isBirthDateFuture) {
+      toast.error('A data de nascimento não pode ser futura.')
+      return
+    }
+    if (hasInvalidGuardianPhone) {
+      toast.error('Informe um telefone de responsável válido.')
+      return
+    }
+    const payload = {
+      ...form,
+      name: form.name.trim(),
+      enrollment: form.enrollment.trim(),
+      email: form.email?.trim(),
+      guardian: form.guardian?.trim(),
+      guardianPhone: form.guardianPhone?.trim(),
+      guardianEmail: form.guardianEmail?.trim(),
+      notes: form.notes?.trim(),
+    }
     try {
       if (editing) {
-        await updateStudent.mutateAsync({ id: editing.id, data: form })
+        await updateStudent.mutateAsync({ id: editing.id, data: payload })
       } else {
-        await createStudent.mutateAsync(form)
+        await createStudent.mutateAsync(payload)
       }
       setShowModal(false)
     } catch { /* handled by interceptor */ }
@@ -357,9 +378,16 @@ export default function StudentsPage() {
                     type="date"
                     required
                     value={form.birthDate}
+                    max={todayISO()}
                     onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))}
-                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+                    aria-invalid={isBirthDateFuture}
+                    className={`w-full h-9 px-3 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 ${
+                      isBirthDateFuture ? 'border-destructive text-destructive focus:ring-destructive/30' : 'border-input'
+                    }`}
                   />
+                  {isBirthDateFuture && (
+                    <p className="text-xs text-destructive mt-1">A data deve ser de hoje ou anterior.</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Status</label>
@@ -404,9 +432,15 @@ export default function StudentsPage() {
                           }
                           setForm(f => ({ ...f, guardianPhone: formatted }))
                         }}
-                        className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
                         placeholder="(00) 00000-0000"
+                        aria-invalid={hasInvalidGuardianPhone}
+                        className={`w-full h-9 px-3 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 ${
+                          hasInvalidGuardianPhone ? 'border-destructive text-destructive focus:ring-destructive/30' : 'border-input'
+                        }`}
                       />
+                      {hasInvalidGuardianPhone && (
+                        <p className="text-xs text-destructive mt-1">Informe DDD e telefone.</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-1.5 block">Email *</label>

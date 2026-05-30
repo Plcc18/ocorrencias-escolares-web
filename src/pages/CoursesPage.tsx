@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCourses, useCreateCourse, useUpdateCourse, useDeleteCourse } from '../hooks/useCourses'
+import { useAuth } from '../contexts/AuthContext'
 import { PageHeader } from '../components/common/PageHeader'
 import { EmptyState } from '../components/common/EmptyState'
 import type { Course, CourseDTO } from '../types'
@@ -10,6 +11,7 @@ const INITIAL_FORM: CourseDTO = { name: '', acronym: '' }
 
 export default function CoursesPage() {
   const navigate = useNavigate()
+  const { isAdmin } = useAuth()
   const { data: courses, isLoading } = useCourses()
   const createCourse = useCreateCourse()
   const updateCourse = useUpdateCourse()
@@ -27,12 +29,14 @@ export default function CoursesPage() {
   )
 
   const openCreate = () => {
+    if (!isAdmin) return
     setEditing(null)
     setForm(INITIAL_FORM)
     setShowModal(true)
   }
 
   const openEdit = (course: Course) => {
+    if (!isAdmin) return
     setEditing(course)
     setForm({ name: course.name, acronym: course.acronym })
     setShowModal(true)
@@ -40,17 +44,21 @@ export default function CoursesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isAdmin) return
+    const payload = { name: form.name.trim(), acronym: form.acronym.trim().toUpperCase() }
+    if (!payload.name || !payload.acronym) return
     try {
       if (editing) {
-        await updateCourse.mutateAsync({ id: editing.id, data: form })
+        await updateCourse.mutateAsync({ id: editing.id, data: payload })
       } else {
-        await createCourse.mutateAsync(form)
+        await createCourse.mutateAsync(payload)
       }
       setShowModal(false)
     } catch { /* handled */ }
   }
 
   const handleDelete = async (id: number) => {
+    if (!isAdmin) return
     try {
       await deleteCourse.mutateAsync(id)
       setConfirmDelete(null)
@@ -62,12 +70,14 @@ export default function CoursesPage() {
   return (
     <div className="flex flex-col flex-1 animate-fadeIn">
       <PageHeader title="Cursos" description={`${courses?.length ?? 0} curso(s) cadastrado(s)`}>
-        <button
-          onClick={openCreate}
-          className="h-8 px-3 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1.5"
-        >
-          <Plus className="size-4" /> Novo Curso
-        </button>
+        {isAdmin && (
+          <button
+            onClick={openCreate}
+            className="h-8 px-3 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1.5"
+          >
+            <Plus className="size-4" /> Novo Curso
+          </button>
+        )}
       </PageHeader>
 
       {/* Search */}
@@ -107,15 +117,15 @@ export default function CoursesPage() {
           <EmptyState
             icon={<BookMarked className="size-6" />}
             title="Nenhum curso encontrado"
-            description={search ? 'Tente outro termo de busca.' : 'Crie o primeiro curso para começar.'}
-            action={
+            description={search ? 'Tente outro termo de busca.' : isAdmin ? 'Crie o primeiro curso para começar.' : 'Nenhum curso cadastrado.'}
+            action={isAdmin ? (
               <button
                 onClick={openCreate}
                 className="h-8 px-3 bg-primary text-primary-foreground text-sm rounded-lg hover:bg-primary/90 flex items-center gap-1.5"
               >
                 <Plus className="size-3.5" /> Criar Curso
               </button>
-            }
+            ) : undefined}
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -129,6 +139,7 @@ export default function CoursesPage() {
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <BookMarked className="size-5 text-primary" />
                   </div>
+                  {isAdmin && (
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={(e) => { e.stopPropagation(); openEdit(course); }}
@@ -143,6 +154,7 @@ export default function CoursesPage() {
                       <Trash2 className="size-3.5" />
                     </button>
                   </div>
+                  )}
                 </div>
 
                 <h3 className="text-sm font-semibold text-foreground mb-0.5">{course.name}</h3>

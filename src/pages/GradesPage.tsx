@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useGrades, useCreateGrade, useUpdateGrade, useDeleteGrade } from '../hooks/useGrades'
 import { useCourses } from '../hooks/useCourses'
+import { useAuth } from '../contexts/AuthContext'
 import { PageHeader } from '../components/common/PageHeader'
 import { EmptyState } from '../components/common/EmptyState'
 import { GRADE_SHIFTS, SHIFT_LABELS, SHIFT_COLORS } from '../utils/occurrenceTypes'
@@ -35,6 +36,7 @@ function buildDisplayName(gradeLevel: number, courseAcronym: string, schoolYear:
 
 export default function GradesPage() {
   const navigate = useNavigate()
+  const { isAdmin } = useAuth()
   const [searchParams] = useSearchParams()
   const { data: grades, isLoading } = useGrades()
   const { data: courses } = useCourses()
@@ -64,12 +66,14 @@ export default function GradesPage() {
     : null
 
   const openCreate = () => {
+    if (!isAdmin) return
     setEditing(null)
     setForm(INITIAL_FORM)
     setShowModal(true)
   }
 
   const openEdit = (grade: Grade) => {
+    if (!isAdmin) return
     setEditing(grade)
     setForm({
       gradeLevel: grade.gradeLevel,
@@ -82,6 +86,7 @@ export default function GradesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isAdmin) return
     if (!form.courseId) return
     try {
       if (editing) {
@@ -94,6 +99,7 @@ export default function GradesPage() {
   }
 
   const handleDelete = async (id: number) => {
+    if (!isAdmin) return
     try {
       await deleteGrade.mutateAsync(id)
       setConfirmDelete(null)
@@ -105,12 +111,14 @@ export default function GradesPage() {
   return (
     <div className="flex flex-col flex-1 animate-fadeIn">
       <PageHeader title="Turmas" description={`${grades?.length ?? 0} turma(s) cadastrada(s)`}>
-        <button
-          onClick={openCreate}
-          className="h-8 px-3 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1.5"
-        >
-          <Plus className="size-4" /> Nova Turma
-        </button>
+        {isAdmin && (
+          <button
+            onClick={openCreate}
+            className="h-8 px-3 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1.5"
+          >
+            <Plus className="size-4" /> Nova Turma
+          </button>
+        )}
       </PageHeader>
 
       {/* Search */}
@@ -150,15 +158,15 @@ export default function GradesPage() {
           <EmptyState
             icon={<BookOpen className="size-6" />}
             title="Nenhuma turma encontrada"
-            description={search ? 'Tente outro termo de busca.' : 'Crie a primeira turma para começar.'}
-            action={
+            description={search ? 'Tente outro termo de busca.' : isAdmin ? 'Crie a primeira turma para começar.' : 'Nenhuma turma cadastrada.'}
+            action={isAdmin ? (
               <button
                 onClick={openCreate}
                 className="h-8 px-3 bg-primary text-primary-foreground text-sm rounded-lg hover:bg-primary/90 flex items-center gap-1.5"
               >
                 <Plus className="size-3.5" /> Criar Turma
               </button>
-            }
+            ) : undefined}
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -172,6 +180,7 @@ export default function GradesPage() {
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <BookOpen className="size-5 text-primary" />
                   </div>
+                  {isAdmin && (
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={(e) => { e.stopPropagation(); openEdit(grade); }}
@@ -186,6 +195,7 @@ export default function GradesPage() {
                       <Trash2 className="size-3.5" />
                     </button>
                   </div>
+                  )}
                 </div>
 
                 <h3 className="text-sm font-semibold text-foreground mb-0.5">{grade.displayName}</h3>

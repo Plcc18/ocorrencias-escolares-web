@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { School, Eye, EyeOff, Lock, Mail } from 'lucide-react'
+import { School, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -15,9 +15,14 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail || !password) {
+      setError('Informe e-mail e senha para acessar.')
+      return
+    }
     setIsLoading(true)
     try {
-      await login(email, password)
+      await login(trimmedEmail, password)
       navigate('/dashboard')
     } catch {
       setError('Email ou senha inválidos.')
@@ -30,22 +35,30 @@ export default function LoginPage() {
     <div className="animate-fadeIn">
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary shadow-sm mb-4">
           <School className="size-7 text-primary-foreground" />
         </div>
-        <h1 className="text-2xl font-semibold text-foreground tracking-tight">EscolaGestão</h1>
-        <p className="text-sm text-muted-foreground mt-1">Sistema de Ocorrências</p>
+        <h1 className="text-2xl font-semibold text-foreground tracking-tight">EEEP Gestão</h1>
+        <p className="text-sm text-muted-foreground mt-1">Educação Profissional do Ceará</p>
       </div>
 
       {/* Card */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-foreground mb-5">Entrar na conta</h2>
+        <div className="flex items-center gap-2 mb-5">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+            <ShieldCheck className="size-4" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-foreground leading-none">Acesso ao sistema</h2>
+            <p className="text-xs text-muted-foreground mt-1">Use suas credenciais institucionais.</p>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email */}
           <div className="space-y-1.5">
             <label htmlFor="email" className="text-sm font-medium text-foreground">
-              Email
+              E-mail
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
@@ -91,7 +104,6 @@ export default function LoginPage() {
 
           {error && (
             <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
-              <span className="shrink-0">⚠</span>
               {error}
             </div>
           )}
@@ -112,7 +124,7 @@ export default function LoginPage() {
       </div>
 
       <p className="text-center text-xs text-muted-foreground mt-6">
-        Sistema de gestão escolar • {new Date().getFullYear()}
+        Sistema de gestão escolar profissionalizante • {new Date().getFullYear()}
       </p>
     </div>
   )

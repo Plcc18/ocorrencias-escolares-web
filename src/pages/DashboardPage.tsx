@@ -6,7 +6,8 @@ import { useTeachers } from '../hooks/useTeachers'
 import { useGrades } from '../hooks/useGrades'
 import { OccurrenceBadge } from '../components/common/OccurrenceBadge'
 import { OccurrenceDetailModal } from '../components/occurrences/OccurrenceDetailModal'
-import { formatDate } from '../utils/format'
+import { formatDate, todayISO } from '../utils/format'
+import { OCCURRENCE_TYPE_MAP } from '../utils/occurrenceTypes'
 import type { Occurrence } from '../types'
 import { FileWarning, GraduationCap, Users, BookOpen, TrendingUp, Clock, Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -39,16 +40,26 @@ function StatCard({ label, value, icon, color, loading }: StatCardProps) {
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth()
-  const { data: occurrencesData, isLoading: loadingOcc } = useOccurrences({ size: 5 })
+  const { data: occurrencesData, isLoading: loadingOcc } = useOccurrences({ size: 50 })
   const { data: studentsData, isLoading: loadingStudents } = useStudents({})
   const { data: teachers, isLoading: loadingTeachers } = useTeachers({ enabled: isAdmin })
   const { data: grades, isLoading: loadingGrades } = useGrades({ enabled: isAdmin })
 
   const [selectedOccurrence, setSelectedOccurrence] = useState<Occurrence | null>(null)
 
-  const recentOccurrences = occurrencesData?.content ?? []
+  const occurrenceSample = occurrencesData?.content ?? []
+  const recentOccurrences = occurrenceSample.slice(0, 5)
   const totalStudents = studentsData?.totalElements ?? 0
   const totalOccurrences = occurrencesData?.totalElements ?? 0
+  const todayOccurrences = occurrenceSample.filter(occ => occ.occurrenceDate === todayISO()).length
+  const typeSummary = Object.entries(
+    occurrenceSample.reduce<Record<string, number>>((acc, occ) => {
+      acc[occ.occurrenceType] = (acc[occ.occurrenceType] ?? 0) + 1
+      return acc
+    }, {})
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
 
   const greeting = () => {
     const h = new Date().getHours()
@@ -75,28 +86,35 @@ export default function DashboardPage() {
       </div>
 
       <div className="flex-1 p-6 space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             label="Total de Ocorrências"
             value={totalOccurrences}
-            icon={<FileWarning className="size-5 text-orange-600" />}
-            color="bg-orange-50 dark:bg-orange-950"
+            icon={<FileWarning className="size-5 text-primary" />}
+            color="bg-primary/10"
             loading={loadingOcc}
           />
           <StatCard
             label="Alunos Cadastrados"
             value={totalStudents}
-            icon={<GraduationCap className="size-5 text-blue-600" />}
-            color="bg-blue-50 dark:bg-blue-950"
+            icon={<GraduationCap className="size-5 text-emerald-700 dark:text-emerald-300" />}
+            color="bg-emerald-50 dark:bg-emerald-950"
             loading={loadingStudents}
+          />
+          <StatCard
+            label="Ocorrências Hoje"
+            value={todayOccurrences}
+            icon={<Clock className="size-5 text-teal-700 dark:text-teal-300" />}
+            color="bg-teal-50 dark:bg-teal-950"
+            loading={loadingOcc}
           />
           {isAdmin && (
             <>
               <StatCard
                 label="Professores"
                 value={teachers?.length ?? 0}
-                icon={<Users className="size-5 text-purple-600" />}
-                color="bg-purple-50 dark:bg-purple-950"
+                icon={<Users className="size-5 text-cyan-700 dark:text-cyan-300" />}
+                color="bg-cyan-50 dark:bg-cyan-950"
                 loading={loadingTeachers}
               />
               <StatCard
@@ -107,6 +125,42 @@ export default function DashboardPage() {
                 loading={loadingGrades}
               />
             </>
+          )}
+        </div>
+
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Tipos mais registrados</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Com base nas ocorrências mais recentes</p>
+            </div>
+          </div>
+          {loadingOcc ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-5">
+              {[...Array(4)].map((_, i) => <div key={i} className="h-16 skeleton-shimmer rounded-lg" />)}
+            </div>
+          ) : typeSummary.length === 0 ? (
+            <div className="px-5 py-8 text-sm text-muted-foreground text-center">Ainda não há dados para comparar.</div>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-5">
+              {typeSummary.map(([type, count]) => {
+                const info = OCCURRENCE_TYPE_MAP[type as keyof typeof OCCURRENCE_TYPE_MAP]
+                return (
+                  <div key={type} className="border border-border rounded-lg p-3 bg-background">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium text-foreground truncate">{info?.label ?? type}</span>
+                      <span className="text-lg font-semibold text-primary">{count}</span>
+                    </div>
+                    <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-primary"
+                        style={{ width: `${Math.min(100, (count / Math.max(...typeSummary.map(([, value]) => value))) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
 
