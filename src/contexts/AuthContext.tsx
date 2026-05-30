@@ -20,6 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem('escola_token')
     if (token) {
+      // /auth/me retorna o UserResponseDTO com o campo 'username' = nome real
       authService.me()
         .then(setUser)
         .catch(() => localStorage.removeItem('escola_token'))
@@ -31,6 +32,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     await authService.login({ email, password })
+    // Após o login, busca /me para garantir que user.username = nome real
+    // (o AuthResponse já vem correto após a fix do AuthController,
+    //  mas /me é a fonte de verdade)
     const me = await authService.me()
     setUser(me)
   }
@@ -44,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{
       user,
       isLoading,
-      isAdmin: user?.role === 'ADMIN',
+      isAdmin:   user?.role === 'ADMIN',
       isTeacher: user?.role === 'TEACHER',
       login,
       logout,
