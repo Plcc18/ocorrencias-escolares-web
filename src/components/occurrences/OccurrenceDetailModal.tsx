@@ -3,7 +3,7 @@ import { useGrades } from '../../hooks/useGrades'
 import { useTeachers } from '../../hooks/useTeachers'
 import { useStudents } from '../../hooks/useStudents'
 import { OccurrenceBadge } from '../common/OccurrenceBadge'
-import { formatDate, formatDateTime } from '../../utils/format'
+import { formatDate, formatDateTime, todayISO } from '../../utils/format'
 import { OCCURRENCE_TYPES } from '../../utils/occurrenceTypes'
 import { occurrencesService } from '../../api/occurrences'
 import type { Occurrence, OccurrenceType } from '../../types'
@@ -18,6 +18,7 @@ import { useAuth } from '../../contexts/AuthContext'
 interface Props {
   occurrence: Occurrence
   onClose: () => void
+  initialEditing?: boolean
 }
 
 function InfoRow({
@@ -42,12 +43,12 @@ function InfoRow({
   )
 }
 
-export function OccurrenceDetailModal({ occurrence, onClose }: Props) {
-  const { isAdmin, isTeacher } = useAuth()
-  const canEdit = isAdmin || isTeacher
+export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = false }: Props) {
+  const { isAdmin } = useAuth()
+  const canEdit = isAdmin
   const qc = useQueryClient()
 
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState(initialEditing && canEdit)
   const [saving, setSaving] = useState(false)
 
   // Edit form state
@@ -59,6 +60,11 @@ export function OccurrenceDetailModal({ occurrence, onClose }: Props) {
   const { data: teachers } = useTeachers({ enabled: canEdit })
 
   const handleSave = async () => {
+    if (occurrenceDate > todayISO()) {
+      toast.error('A data da ocorrência não pode ser futura.')
+      return
+    }
+
     setSaving(true)
     try {
       await occurrencesService.update(occurrence.id, {
@@ -91,6 +97,7 @@ export function OccurrenceDetailModal({ occurrence, onClose }: Props) {
   const displayDescription = editing ? description : occurrence.description
   const displayType = editing ? occurrenceType : occurrence.occurrenceType
   const displayDate = editing ? occurrenceDate : occurrence.occurrenceDate
+  const isFutureDate = occurrenceDate > todayISO()
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -204,7 +211,7 @@ export function OccurrenceDetailModal({ occurrence, onClose }: Props) {
                   className="w-full h-8 px-2 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
                 >
                   {teachers?.map(t => (
-                    <option key={t.id} value={t.id}>{t.name} — {t.subjects}</option>
+                    <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
               ) : (
@@ -218,13 +225,25 @@ export function OccurrenceDetailModal({ occurrence, onClose }: Props) {
             label="Data da ocorrência"
             value={
               editing ? (
-                <input
-                  type="date"
-                  value={occurrenceDate}
-                  max={new Date().toISOString().split('T')[0]}
-                  onChange={e => setOccurrenceDate(e.target.value)}
-                  className="h-8 px-2 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-                />
+                <div>
+                  <input
+                    type="date"
+                    value={occurrenceDate}
+                    max={todayISO()}
+                    onChange={e => setOccurrenceDate(e.target.value)}
+                    aria-invalid={isFutureDate}
+                    className={`h-8 px-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 ${
+                      isFutureDate
+                        ? 'border-destructive text-destructive focus:ring-destructive/30'
+                        : 'border-input'
+                    }`}
+                  />
+                  {isFutureDate && (
+                    <p className="text-xs text-destructive mt-1">
+                      A data deve ser de hoje ou de um dia anterior.
+                    </p>
+                  )}
+                </div>
               ) : (
                 formatDate(displayDate)
               )

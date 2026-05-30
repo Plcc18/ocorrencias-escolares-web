@@ -11,13 +11,13 @@ import { OccurrenceDetailModal } from '../components/occurrences/OccurrenceDetai
 import { formatDate } from '../utils/format'
 import { OCCURRENCE_TYPES } from '../utils/occurrenceTypes'
 import type { Occurrence, OccurrenceFilters } from '../types'
-import { Plus, FileWarning, X, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, FileWarning, X, Trash2, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
 
 export default function OccurrencesPage() {
-  const { isAdmin, isTeacher } = useAuth()
-  const canEdit = isAdmin || isTeacher
+  const { isAdmin } = useAuth()
   const [filters, setFilters] = useState<OccurrenceFilters>({ page: 0, size: 20 })
   const [selectedOccurrence, setSelectedOccurrence] = useState<Occurrence | null>(null)
+  const [editingOccurrence, setEditingOccurrence] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
 
   const { data, isLoading } = useOccurrences(filters)
@@ -35,6 +35,11 @@ export default function OccurrencesPage() {
       setConfirmDelete(null)
       if (selectedOccurrence?.id === id) setSelectedOccurrence(null)
     } catch { /* handled */ }
+  }
+
+  const handleOpenDetails = (occurrence: Occurrence, editing = false) => {
+    setSelectedOccurrence(occurrence)
+    setEditingOccurrence(editing && isAdmin)
   }
 
   return (
@@ -150,7 +155,7 @@ export default function OccurrencesPage() {
               {occurrences.map(occ => (
                 <tr
                   key={occ.id}
-                  onClick={() => setSelectedOccurrence(occ)}
+                  onClick={() => handleOpenDetails(occ)}
                   className="hover:bg-muted/30 transition-colors cursor-pointer group"
                 >
                   <td className="px-6 py-3.5 font-medium text-foreground">{occ.studentName}</td>
@@ -163,12 +168,22 @@ export default function OccurrencesPage() {
                   </td>
                   {isAdmin && (
                     <td className="px-4 py-3.5 text-right">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setConfirmDelete(occ.id) }}
-                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleOpenDetails(occ, true) }}
+                          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          title="Editar"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmDelete(occ.id) }}
+                          className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          title="Remover"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -207,7 +222,11 @@ export default function OccurrencesPage() {
       {selectedOccurrence && (
         <OccurrenceDetailModal
           occurrence={selectedOccurrence}
-          onClose={() => setSelectedOccurrence(null)}
+          initialEditing={editingOccurrence}
+          onClose={() => {
+            setSelectedOccurrence(null)
+            setEditingOccurrence(false)
+          }}
         />
       )}
 

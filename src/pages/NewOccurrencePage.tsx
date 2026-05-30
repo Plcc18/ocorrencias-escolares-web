@@ -11,6 +11,7 @@ import { OCCURRENCE_TYPES } from '../utils/occurrenceTypes'
 import { todayISO } from '../utils/format'
 import type { OccurrenceType } from '../types'
 import { ArrowLeft, Search, CheckCircle2, UserCheck } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export default function NewOccurrencePage() {
   const { user, isAdmin } = useAuth()
@@ -46,17 +47,23 @@ export default function NewOccurrencePage() {
   const selectedTeacher = isAdmin
     ? teachers?.find(t => t.id === selectedTeacherId)
     : null
+  const isFutureDate = date > todayISO()
 
   const canSubmit =
     gradeId &&
     studentId &&
     occurrenceType &&
     description.trim() &&
+    !isFutureDate &&
     effectiveTeacherId !== null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!studentId || !occurrenceType || !description.trim() || !effectiveTeacherId) return
+    if (isFutureDate) {
+      toast.error('A data da ocorrência não pode ser futura.')
+      return
+    }
 
     try {
       await createOccurrence.mutateAsync({
@@ -241,7 +248,17 @@ export default function NewOccurrencePage() {
                 <label className="text-sm font-medium mb-1.5 block">Data da Ocorrência</label>
                 <input type="date" value={date} max={todayISO()}
                   onChange={e => setDate(e.target.value)}
-                  className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50" />
+                  aria-invalid={isFutureDate}
+                  className={`w-full h-9 px-3 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 ${
+                    isFutureDate
+                      ? 'border-destructive text-destructive focus:ring-destructive/30'
+                      : 'border-input'
+                  }`} />
+                {isFutureDate && (
+                  <p className="text-xs text-destructive mt-1">
+                    A data deve ser de hoje ou de um dia anterior.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Descrição *</label>
