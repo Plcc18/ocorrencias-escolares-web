@@ -41,8 +41,8 @@ export default function DashboardPage() {
   const { user, isAdmin } = useAuth()
   const { data: occurrencesData, isLoading: loadingOcc } = useOccurrences({ size: 5 })
   const { data: studentsData, isLoading: loadingStudents } = useStudents({})
-  const { data: teachers, isLoading: loadingTeachers } = useTeachers()
-  const { data: grades, isLoading: loadingGrades } = useGrades()
+  const { data: teachers, isLoading: loadingTeachers } = useTeachers({ enabled: isAdmin })
+  const { data: grades, isLoading: loadingGrades } = useGrades({ enabled: isAdmin })
 
   const [selectedOccurrence, setSelectedOccurrence] = useState<Occurrence | null>(null)
 

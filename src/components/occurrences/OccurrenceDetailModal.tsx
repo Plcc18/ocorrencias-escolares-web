@@ -56,7 +56,7 @@ export function OccurrenceDetailModal({ occurrence, onClose }: Props) {
   const [occurrenceDate, setOccurrenceDate] = useState(occurrence.occurrenceDate)
   const [teacherId, setTeacherId] = useState(occurrence.teacherId)
 
-  const { data: teachers } = useTeachers()
+  const { data: teachers } = useTeachers({ enabled: canEdit })
 
   const handleSave = async () => {
     setSaving(true)

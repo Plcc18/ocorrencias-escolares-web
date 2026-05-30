@@ -22,7 +22,7 @@ export default function OccurrencesPage() {
 
   const { data, isLoading } = useOccurrences(filters)
   const { data: grades } = useGrades()
-  const { data: teachers } = useTeachers()
+  const { data: teachers } = useTeachers({ enabled: isAdmin })
   const deleteOccurrence = useDeleteOccurrence()
 
   const occurrences = data?.content ?? []

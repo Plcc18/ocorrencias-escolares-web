@@ -40,30 +40,28 @@ export default function App() {
             {/* Protegidas */}
             <Route element={<AuthGuard />}>
               <Route element={<AppLayout />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
+                {/* Todos os autenticados */}
+                <Route path="/dashboard"   element={<DashboardPage />} />
                 <Route path="/occurrences" element={<OccurrencesPage />} />
-                <Route path="/students" element={<StudentsPage />} />
+                <Route path="/students"    element={<StudentsPage />} />
 
-                {/* ADMIN + TEACHER */}
+                {/* ADMIN e TEACHER podem registrar ocorrências e ver turmas/cursos */}
                 <Route element={<RoleGuard allowedRoles={['ADMIN', 'TEACHER']} />}>
                   <Route path="/occurrences/new" element={<NewOccurrencePage />} />
+                  <Route path="/grades"          element={<GradesPage />} />
+                  <Route path="/courses"         element={<CoursesPage />} />
                 </Route>
 
                 {/* Somente ADMIN */}
                 <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
-                  <Route path="/teachers" element={<TeachersPage />} />
-                  <Route path="/grades" element={<GradesPage />} />
-                  <Route path="/courses" element={<CoursesPage />} />
-                  <Route path="/promotion" element={<PromotionPage />} /> 
-                  
+                  <Route path="/teachers"  element={<TeachersPage />} />
+                  <Route path="/promotion" element={<PromotionPage />} />
                 </Route>
-
-               
               </Route>
             </Route>
 
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/"  element={<Navigate to="/dashboard" replace />} />
+            <Route path="*"  element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </BrowserRouter>
 
@@ -79,12 +77,8 @@ export default function App() {
               fontSize: '13px',
               padding: '10px 14px',
             },
-            success: {
-              iconTheme: { primary: '#22c55e', secondary: '#fff' },
-            },
-            error: {
-              iconTheme: { primary: '#ef4444', secondary: '#fff' },
-            },
+            success: { iconTheme: { primary: '#22c55e', secondary: '#fff' } },
+            error:   { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
           }}
         />
       </AuthProvider>

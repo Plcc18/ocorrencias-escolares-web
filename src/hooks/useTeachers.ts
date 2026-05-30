@@ -3,11 +3,12 @@ import { teachersService } from '../api/teachers'
 import type { TeacherDTO } from '../types/teacher'
 import toast from 'react-hot-toast'
 
-export function useTeachers() {
+export function useTeachers(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['teachers'],
     queryFn: () => teachersService.getAll(),
     staleTime: 120_000,
+    ...options,
   })
 }
 

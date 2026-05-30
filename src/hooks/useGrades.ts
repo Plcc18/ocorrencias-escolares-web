@@ -3,11 +3,12 @@ import { gradesService } from '../api/grades'
 import type { GradeDTO } from '../types/grade'
 import toast from 'react-hot-toast'
 
-export function useGrades() {
+export function useGrades(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['grades'],
     queryFn: () => gradesService.getAll(),
     staleTime: 120_000,
+    ...options,
   })
 }
 
