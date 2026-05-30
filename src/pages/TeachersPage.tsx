@@ -8,8 +8,66 @@ import { api } from '../api/axios'
 import toast from 'react-hot-toast'
 import { Plus, Trash2, Users, X, Search, Pencil, KeyRound, Eye, EyeOff } from 'lucide-react'
 
-const INITIAL_FORM: TeacherCreateDTO = { name: '', email: '', password: '', subject: '' }
+const INITIAL_FORM: TeacherCreateDTO = { name: '', email: '', password: '', subjects: [] }
 
+// ── SubjectTagInput ───────────────────────────────────────────────────────────
+interface SubjectTagInputProps {
+  value: string[]
+  onChange: (subjects: string[]) => void
+  disabled?: boolean
+}
+
+function SubjectTagInput({ value, onChange, disabled }: SubjectTagInputProps) {
+  const [input, setInput] = useState('')
+
+  const add = (raw: string) => {
+    const subject = raw.trim()
+    if (!subject || value.includes(subject)) { setInput(''); return }
+    onChange([...value, subject])
+    setInput('')
+  }
+
+  const remove = (subject: string) => onChange(value.filter(s => s !== subject))
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault()
+      add(input)
+    } else if (e.key === 'Backspace' && input === '' && value.length > 0) {
+      onChange(value.slice(0, -1))
+    }
+  }
+
+  return (
+    <div className={`min-h-[38px] w-full px-3 py-1.5 border border-input rounded-lg bg-background flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-ring/50 transition-all ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
+      {value.map(subject => (
+        <span
+          key={subject}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
+        >
+          {subject}
+          {!disabled && (
+            <button type="button" onClick={() => remove(subject)} className="hover:text-destructive transition-colors">
+              <X className="size-2.5" />
+            </button>
+          )}
+        </span>
+      ))}
+      {!disabled && (
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={() => { if (input.trim()) add(input) }}
+          placeholder={value.length === 0 ? 'Digite e pressione Enter...' : ''}
+          className="flex-1 min-w-24 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+        />
+      )}
+    </div>
+  )
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 export default function TeachersPage() {
   const { data: teachers, isLoading } = useTeachers()
   const createTeacher = useCreateTeacher()
@@ -31,56 +89,49 @@ export default function TeachersPage() {
   const [savingPw, setSavingPw] = useState(false)
 
   const openCreate = () => {
-    setViewing(null)
-    setEditing(null)
+    setViewing(null); setEditing(null)
     setForm(INITIAL_FORM)
     setShowModal(true)
   }
 
   const openView = (teacher: Teacher) => {
-    setViewing(teacher)
-    setEditing(null)
-    setForm({ name: teacher.name, email: teacher.email, password: '••••••••', subject: teacher.subject || '' })
+    setViewing(teacher); setEditing(null)
+    setForm({ name: teacher.name, email: teacher.email, password: '', subjects: teacher.subjects ?? [] })
     setShowModal(true)
   }
 
   const openEdit = (teacher: Teacher) => {
-    setViewing(null)
-    setEditing(teacher)
-    setForm({ name: teacher.name, email: teacher.email, password: '', subject: teacher.subject || '' })
+    setViewing(null); setEditing(teacher)
+    setForm({ name: teacher.name, email: teacher.email, password: '', subjects: teacher.subjects ?? [] })
     setShowModal(true)
   }
 
   const openPasswordChange = (teacher: Teacher, e?: React.MouseEvent) => {
     e?.stopPropagation()
-    setPwTeacher(teacher)
-    setNewPassword('')
-    setShowNewPass(false)
+    setPwTeacher(teacher); setNewPassword(''); setShowNewPass(false)
   }
 
   const filtered = (teachers ?? []).filter(t =>
     t.name.toLowerCase().includes(search.toLowerCase()) ||
-    t.email.toLowerCase().includes(search.toLowerCase())
+    t.email.toLowerCase().includes(search.toLowerCase()) ||
+    (t.subjects ?? []).some(s => s.toLowerCase().includes(search.toLowerCase()))
   )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (form.subjects.length === 0) { toast.error('Adicione pelo menos uma disciplina.'); return }
     try {
       if (editing) {
         await updateTeacher.mutateAsync({ id: editing.id, data: form })
       } else {
         await createTeacher.mutateAsync(form)
       }
-      setShowModal(false)
-      setForm(INITIAL_FORM)
+      setShowModal(false); setForm(INITIAL_FORM)
     } catch { /* handled */ }
   }
 
   const handleDelete = async (id: number) => {
-    try {
-      await deleteTeacher.mutateAsync(id)
-      setConfirmDelete(null)
-    } catch { /* handled */ }
+    try { await deleteTeacher.mutateAsync(id); setConfirmDelete(null) } catch { /* handled */ }
   }
 
   const handlePasswordChange = async (e: React.FormEvent) => {
@@ -90,13 +141,8 @@ export default function TeachersPage() {
     try {
       await api.patch(`/teachers/${pwTeacher.id}/password`, { newPassword })
       toast.success(`Senha de ${pwTeacher.name} alterada com sucesso!`)
-      setPwTeacher(null)
-      setNewPassword('')
-    } catch {
-      // handled by axios interceptor
-    } finally {
-      setSavingPw(false)
-    }
+      setPwTeacher(null); setNewPassword('')
+    } catch { /* handled by axios interceptor */ } finally { setSavingPw(false) }
   }
 
   return (
@@ -116,7 +162,7 @@ export default function TeachersPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar professor..."
+            placeholder="Buscar por nome, email ou disciplina..."
             className="w-full h-8 pl-8 pr-3 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
           />
         </div>
@@ -151,7 +197,7 @@ export default function TeachersPage() {
               <tr className="border-b border-border">
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Professor</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Disciplina</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Disciplinas</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Cadastrado em</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Ações</th>
               </tr>
@@ -172,29 +218,30 @@ export default function TeachersPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3.5 text-muted-foreground">{teacher.email}</td>
-                  <td className="px-4 py-3.5 text-muted-foreground">{teacher.subject || '—'}</td>
+                  <td className="px-4 py-3.5">
+                    <div className="flex flex-wrap gap-1">
+                      {(teacher.subjects ?? []).length === 0 ? (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      ) : (
+                        (teacher.subjects ?? []).map(s => (
+                          <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{s}</span>
+                        ))
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3.5 text-muted-foreground">{teacher.createdAt ? formatDate(teacher.createdAt) : '—'}</td>
                   <td className="px-4 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openPasswordChange(teacher, e) }}
-                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        title="Alterar senha"
-                      >
+                      <button onClick={(e) => { e.stopPropagation(); openPasswordChange(teacher, e) }}
+                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Alterar senha">
                         <KeyRound className="size-3.5" />
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openEdit(teacher) }}
-                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        title="Editar"
-                      >
+                      <button onClick={(e) => { e.stopPropagation(); openEdit(teacher) }}
+                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Editar">
                         <Pencil className="size-3.5" />
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setConfirmDelete(teacher.id) }}
-                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                        title="Remover"
-                      >
+                      <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(teacher.id) }}
+                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Remover">
                         <Trash2 className="size-3.5" />
                       </button>
                     </div>
@@ -216,10 +263,8 @@ export default function TeachersPage() {
               </h3>
               <div className="flex items-center gap-2">
                 {viewing && (
-                  <button
-                    onClick={() => openEdit(viewing)}
-                    className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5 text-muted-foreground"
-                  >
+                  <button onClick={() => openEdit(viewing)}
+                    className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5 text-muted-foreground">
                     <Pencil className="size-3.5" /> Editar
                   </button>
                 )}
@@ -232,64 +277,57 @@ export default function TeachersPage() {
               <fieldset disabled={!!viewing} className="p-6 space-y-4 border-none m-0">
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Nome Completo *</label>
-                  <input
-                    required
-                    value={form.name}
+                  <input required value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="Nome do professor"
-                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-                  />
+                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50" />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Email *</label>
-                  <input
-                    required
-                    type="email"
-                    value={form.email}
+                  <input required type="email" value={form.email}
                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                     placeholder="professor@escola.com"
-                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-                  />
+                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50" />
                 </div>
                 {!editing && !viewing && (
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">Senha *</label>
                     <div className="relative">
-                      <input
-                        required
-                        type={showPass ? 'text' : 'password'}
-                        value={form.password}
+                      <input required type={showPass ? 'text' : 'password'} value={form.password}
                         onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                        placeholder="Senha de acesso"
-                        minLength={6}
-                        className="w-full h-9 px-3 pr-10 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-                      />
-                      <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground">
+                        placeholder="Mínimo 6 caracteres" minLength={6}
+                        className="w-full h-9 px-3 pr-20 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50" />
+                      <button type="button" onClick={() => setShowPass(!showPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground">
                         {showPass ? 'ocultar' : 'mostrar'}
                       </button>
                     </div>
                   </div>
                 )}
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Disciplina</label>
-                  <input
-                    value={form.subject}
-                    onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                    placeholder="Ex: Matemática"
-                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+                  <label className="text-sm font-medium mb-1.5 block">
+                    Disciplinas *
+                    {!viewing && (
+                      <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                        (pressione Enter ou vírgula para adicionar)
+                      </span>
+                    )}
+                  </label>
+                  <SubjectTagInput
+                    value={form.subjects}
+                    onChange={subjects => setForm(f => ({ ...f, subjects }))}
+                    disabled={!!viewing}
                   />
                 </div>
               </fieldset>
               <div className="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30 rounded-b-2xl">
-                <button type="button" onClick={() => setShowModal(false)} className="h-9 px-4 text-sm border border-border rounded-lg hover:bg-muted">
+                <button type="button" onClick={() => setShowModal(false)}
+                  className="h-9 px-4 text-sm border border-border rounded-lg hover:bg-muted">
                   {viewing ? 'Fechar' : 'Cancelar'}
                 </button>
                 {!viewing && (
-                  <button
-                    type="submit"
-                    disabled={createTeacher.isPending || updateTeacher.isPending}
-                    className="h-9 px-4 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
-                  >
+                  <button type="submit" disabled={createTeacher.isPending || updateTeacher.isPending}
+                    className="h-9 px-4 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
                     {createTeacher.isPending || updateTeacher.isPending ? (
                       <><div className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> Salvando...</>
                     ) : (editing ? 'Salvar' : 'Cadastrar')}
@@ -310,14 +348,10 @@ export default function TeachersPage() {
                 <h3 className="text-base font-semibold">Alterar Senha</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">{pwTeacher.name}</p>
               </div>
-              <button
-                onClick={() => setPwTeacher(null)}
-                className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-              >
+              <button onClick={() => setPwTeacher(null)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
                 <X className="size-4" />
               </button>
             </div>
-
             <form onSubmit={handlePasswordChange}>
               <div className="p-6 space-y-4">
                 <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
@@ -326,20 +360,12 @@ export default function TeachersPage() {
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Nova Senha *</label>
                   <div className="relative">
-                    <input
-                      required
-                      type={showNewPass ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={e => setNewPassword(e.target.value)}
-                      minLength={6}
+                    <input required type={showNewPass ? 'text' : 'password'} value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)} minLength={6}
                       placeholder="Mínimo 6 caracteres"
-                      className="w-full h-9 px-3 pr-20 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPass(!showNewPass)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                    >
+                      className="w-full h-9 px-3 pr-20 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50" />
+                    <button type="button" onClick={() => setShowNewPass(!showNewPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                       {showNewPass ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
                       {showNewPass ? 'ocultar' : 'mostrar'}
                     </button>
@@ -349,20 +375,12 @@ export default function TeachersPage() {
                   )}
                 </div>
               </div>
-
               <div className="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30 rounded-b-2xl">
-                <button
-                  type="button"
-                  onClick={() => setPwTeacher(null)}
-                  className="h-9 px-4 text-sm border border-border rounded-lg hover:bg-muted"
-                >
+                <button type="button" onClick={() => setPwTeacher(null)} className="h-9 px-4 text-sm border border-border rounded-lg hover:bg-muted">
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={savingPw || newPassword.length < 6}
-                  className="h-9 px-4 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
-                >
+                <button type="submit" disabled={savingPw || newPassword.length < 6}
+                  className="h-9 px-4 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
                   {savingPw ? (
                     <><div className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> Salvando...</>
                   ) : (
@@ -383,11 +401,8 @@ export default function TeachersPage() {
             <p className="text-sm text-muted-foreground mb-5">Esta ação não pode ser desfeita.</p>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setConfirmDelete(null)} className="h-8 px-3 text-sm border border-border rounded-lg hover:bg-muted">Cancelar</button>
-              <button
-                onClick={() => handleDelete(confirmDelete)}
-                disabled={deleteTeacher.isPending}
-                className="h-8 px-3 text-sm bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 disabled:opacity-50"
-              >
+              <button onClick={() => handleDelete(confirmDelete)} disabled={deleteTeacher.isPending}
+                className="h-8 px-3 text-sm bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 disabled:opacity-50">
                 {deleteTeacher.isPending ? 'Removendo...' : 'Remover'}
               </button>
             </div>

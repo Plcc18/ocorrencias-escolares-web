@@ -10,7 +10,7 @@ import { OccurrenceBadge } from '../components/common/OccurrenceBadge'
 import { OCCURRENCE_TYPES } from '../utils/occurrenceTypes'
 import { todayISO } from '../utils/format'
 import type { OccurrenceType } from '../types'
-import { ArrowLeft, Search, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Search, CheckCircle2, UserCheck } from 'lucide-react'
 
 export default function NewOccurrencePage() {
   const { user, isAdmin } = useAuth()
@@ -19,7 +19,7 @@ export default function NewOccurrencePage() {
 
   const [gradeId, setGradeId] = useState<number | null>(null)
   const [studentId, setStudentId] = useState<number | null>(null)
-  const [teacherId, setTeacherId] = useState<number | null>(null)
+  const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null)
   const [occurrenceType, setOccurrenceType] = useState<OccurrenceType | null>(null)
   const [description, setDescription] = useState('')
   const [date, setDate] = useState(todayISO())
@@ -27,7 +27,15 @@ export default function NewOccurrencePage() {
 
   const { data: grades } = useGrades()
   const { data: students, isLoading: loadingStudents } = useStudentsByGrade(gradeId)
-  const { data: teachers } = useTeachers()
+  // TEACHER não precisa carregar a lista — o teacherId já vem do contexto
+  const { data: teachers } = useTeachers({ enabled: isAdmin })
+
+  /**
+   * Resolução do professor responsável:
+   * - TEACHER: usa o próprio teacherId do contexto de autenticação (automático, sem seleção)
+   * - ADMIN: usa o professor selecionado no dropdown
+   */
+  const effectiveTeacherId = isAdmin ? selectedTeacherId : (user?.teacherId ?? null)
 
   const filteredStudents = students?.filter(s =>
     s.name.toLowerCase().includes(studentSearch.toLowerCase())
@@ -35,31 +43,26 @@ export default function NewOccurrencePage() {
 
   const selectedGrade = grades?.find(g => g.id === gradeId)
   const selectedStudent = students?.find(s => s.id === studentId)
-  const selectedTeacher = teachers?.find(t => t.id === teacherId)
+  const selectedTeacher = isAdmin
+    ? teachers?.find(t => t.id === selectedTeacherId)
+    : null
 
-  // Para TEACHER, o teacherId é resolvido pelo próprio perfil via API se necessário.
-  // Para ADMIN, permite escolher o professor.
-  const effectiveTeacherId = isAdmin ? teacherId : null // será preenchido abaixo
-  const canSubmit = gradeId && studentId && occurrenceType && description.trim() &&
-    (isAdmin ? teacherId : true)
+  const canSubmit =
+    gradeId &&
+    studentId &&
+    occurrenceType &&
+    description.trim() &&
+    effectiveTeacherId !== null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!studentId || !occurrenceType || !description.trim()) return
-
-    // TEACHER registra em nome próprio — backend precisa do teacherId.
-    // Como o frontend não tem o teacherId do usuário logado diretamente,
-    // o ADMIN seleciona um professor; TEACHER deve ter seu teacherId
-    // resolvido. Por ora enviamos teacherId apenas quando ADMIN selecionou.
-    // Para TEACHER, a solução correta é o backend inferir pelo token (melhoria futura).
-    // Como alternativa temporária, TEACHER deve selecionar a si mesmo na lista.
-    if (!teacherId) return
+    if (!studentId || !occurrenceType || !description.trim() || !effectiveTeacherId) return
 
     try {
       await createOccurrence.mutateAsync({
-        studentId: studentId!,
-        teacherId: teacherId!,
-        occurrenceType: occurrenceType!,
+        studentId,
+        teacherId: effectiveTeacherId,
+        occurrenceType,
         description: description.trim(),
         occurrenceDate: date,
       })
@@ -67,13 +70,18 @@ export default function NewOccurrencePage() {
     } catch { /* handled */ }
   }
 
+  // Número do passo do professor varia conforme o papel:
+  // TEACHER: passo 3 não existe (pulamos para o 4 direto)
+  // ADMIN: passo 3 = selecionar professor
+  const teacherStepNumber = isAdmin ? 3 : null
+  const typeStepNumber = isAdmin ? 4 : 3
+  const detailStepNumber = isAdmin ? 5 : 4
+
   return (
     <div className="flex flex-col flex-1 animate-fadeIn">
       <PageHeader title="Registrar Ocorrência" description="Preencha os dados da ocorrência">
-        <Link
-          to="/occurrences"
-          className="h-8 px-3 text-sm border border-border rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5 text-muted-foreground"
-        >
+        <Link to="/occurrences"
+          className="h-8 px-3 text-sm border border-border rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5 text-muted-foreground">
           <ArrowLeft className="size-4" /> Voltar
         </Link>
       </PageHeader>
@@ -93,15 +101,12 @@ export default function NewOccurrencePage() {
               value={gradeId ?? ''}
               onChange={e => {
                 setGradeId(e.target.value ? Number(e.target.value) : null)
-                setStudentId(null)
-                setStudentSearch('')
+                setStudentId(null); setStudentSearch('')
               }}
               className="w-full h-10 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
             >
               <option value="">Selecione a turma...</option>
-              {grades?.map(g => (
-                <option key={g.id} value={g.id}>{g.displayName}</option>
-              ))}
+              {grades?.map(g => <option key={g.id} value={g.id}>{g.displayName}</option>)}
             </select>
           </div>
 
@@ -114,7 +119,6 @@ export default function NewOccurrencePage() {
               <h3 className="text-sm font-semibold">Selecionar Aluno</h3>
               {selectedGrade && <span className="text-xs text-muted-foreground ml-1">— {selectedGrade.displayName}</span>}
             </div>
-
             {gradeId && (
               <>
                 <div className="relative mb-3">
@@ -135,12 +139,8 @@ export default function NewOccurrencePage() {
                     <div className="py-4 text-center text-sm text-muted-foreground">Nenhum aluno encontrado</div>
                   ) : (
                     filteredStudents.map(s => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => setStudentId(s.id)}
-                        className={`w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors flex items-center justify-between ${studentId === s.id ? 'bg-primary/5 font-medium' : ''}`}
-                      >
+                      <button key={s.id} type="button" onClick={() => setStudentId(s.id)}
+                        className={`w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors flex items-center justify-between ${studentId === s.id ? 'bg-primary/5 font-medium' : ''}`}>
                         <div>
                           <span className="text-foreground">{s.name}</span>
                           <span className="text-xs text-muted-foreground ml-2">{s.enrollment}</span>
@@ -159,46 +159,65 @@ export default function NewOccurrencePage() {
             )}
           </div>
 
-          {/* Passo 3 — Professor (seleção obrigatória) */}
-          <div className={`bg-card border border-border rounded-xl p-5 transition-opacity ${!studentId ? 'opacity-40 pointer-events-none' : ''}`}>
-            <div className="flex items-center gap-2 mb-4">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${teacherId ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                {teacherId ? <CheckCircle2 className="size-4" /> : '3'}
+          {/* Passo 3 — Professor (somente ADMIN seleciona; TEACHER é automático) */}
+          {isAdmin ? (
+            <div className={`bg-card border border-border rounded-xl p-5 transition-opacity ${!studentId ? 'opacity-40 pointer-events-none' : ''}`}>
+              <div className="flex items-center gap-2 mb-4">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${selectedTeacherId ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                  {selectedTeacherId ? <CheckCircle2 className="size-4" /> : String(teacherStepNumber)}
+                </div>
+                <h3 className="text-sm font-semibold">Professor Responsável</h3>
               </div>
-              <h3 className="text-sm font-semibold">Professor Responsável</h3>
+              <select
+                value={selectedTeacherId ?? ''}
+                onChange={e => setSelectedTeacherId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full h-10 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+              >
+                <option value="">Selecione o professor...</option>
+                {teachers?.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}{t.subjects?.length ? ` — ${t.subjects.join(', ')}` : ''}
+                  </option>
+                ))}
+              </select>
             </div>
-            <select
-              value={teacherId ?? ''}
-              onChange={e => setTeacherId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full h-10 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-            >
-              <option value="">Selecione o professor...</option>
-              {teachers?.map(t => (
-                <option key={t.id} value={t.id}>{t.name}{t.subject ? ` — ${t.subject}` : ''}</option>
-              ))}
-            </select>
-          </div>
+          ) : (
+            /* TEACHER: mostra info de quem vai ser o responsável, sem campo de seleção */
+            <div className="bg-card border border-border rounded-xl p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center shrink-0">
+                  <UserCheck className="size-4 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Professor Responsável</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    A ocorrência será registrada em seu nome: <span className="font-medium text-foreground">{user?.username}</span>
+                  </p>
+                </div>
+                <CheckCircle2 className="size-4 text-green-500 ml-auto" />
+              </div>
+            </div>
+          )}
 
-          {/* Passo 4 — Tipo */}
-          <div className={`bg-card border border-border rounded-xl p-5 transition-opacity ${!teacherId ? 'opacity-40 pointer-events-none' : ''}`}>
+          {/* Tipo de Ocorrência */}
+          <div className={`bg-card border border-border rounded-xl p-5 transition-opacity ${
+            isAdmin ? (!selectedTeacherId ? 'opacity-40 pointer-events-none' : '')
+                    : (!studentId ? 'opacity-40 pointer-events-none' : '')
+          }`}>
             <div className="flex items-center gap-2 mb-4">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${occurrenceType ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                {occurrenceType ? <CheckCircle2 className="size-4" /> : '4'}
+                {occurrenceType ? <CheckCircle2 className="size-4" /> : String(typeStepNumber)}
               </div>
               <h3 className="text-sm font-semibold">Tipo de Ocorrência</h3>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {OCCURRENCE_TYPES.map(type => (
-                <button
-                  key={type.value}
-                  type="button"
-                  onClick={() => setOccurrenceType(type.value)}
+                <button key={type.value} type="button" onClick={() => setOccurrenceType(type.value)}
                   className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border text-center transition-all ${
                     occurrenceType === type.value
                       ? 'border-primary bg-primary/5 ring-1 ring-primary'
                       : 'border-border hover:bg-muted'
-                  }`}
-                >
+                  }`}>
                   <span className="text-xl">{type.emoji}</span>
                   <span className="text-xs font-medium text-foreground leading-tight">{type.label}</span>
                 </button>
@@ -206,36 +225,26 @@ export default function NewOccurrencePage() {
             </div>
           </div>
 
-          {/* Passo 5 — Detalhes */}
+          {/* Detalhes */}
           <div className={`bg-card border border-border rounded-xl p-5 transition-opacity ${!occurrenceType ? 'opacity-40 pointer-events-none' : ''}`}>
             <div className="flex items-center gap-2 mb-4">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${description.trim() ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                {description.trim() ? <CheckCircle2 className="size-4" /> : '5'}
+                {description.trim() ? <CheckCircle2 className="size-4" /> : String(detailStepNumber)}
               </div>
               <h3 className="text-sm font-semibold">Detalhes</h3>
             </div>
-
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Data da Ocorrência</label>
-                <input
-                  type="date"
-                  value={date}
-                  max={todayISO()}
+                <input type="date" value={date} max={todayISO()}
                   onChange={e => setDate(e.target.value)}
-                  className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
-                />
+                  className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50" />
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Descrição *</label>
-                <textarea
-                  required
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  rows={4}
-                  placeholder="Descreva detalhadamente o ocorrido..."
-                  className="w-full px-3 py-2 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 resize-none"
-                />
+                <textarea required value={description} onChange={e => setDescription(e.target.value)}
+                  rows={4} placeholder="Descreva detalhadamente o ocorrido..."
+                  className="w-full px-3 py-2 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 resize-none" />
                 <p className="text-xs text-muted-foreground mt-1">{description.length} caracteres</p>
               </div>
             </div>
@@ -249,20 +258,23 @@ export default function NewOccurrencePage() {
                 <div><span className="text-muted-foreground">Aluno:</span><span className="ml-2 font-medium">{selectedStudent?.name}</span></div>
                 <div><span className="text-muted-foreground">Turma:</span><span className="ml-2 font-medium">{selectedGrade?.displayName}</span></div>
                 <div><span className="text-muted-foreground">Tipo:</span><span className="ml-2">{occurrenceType && <OccurrenceBadge type={occurrenceType} />}</span></div>
-                <div><span className="text-muted-foreground">Professor:</span><span className="ml-2 font-medium">{selectedTeacher?.name}</span></div>
+                <div>
+                  <span className="text-muted-foreground">Professor:</span>
+                  <span className="ml-2 font-medium">
+                    {isAdmin ? selectedTeacher?.name : user?.username}
+                  </span>
+                </div>
               </div>
             </div>
           )}
 
           <div className="flex justify-end gap-3">
-            <Link to="/occurrences" className="h-10 px-5 text-sm border border-border rounded-lg hover:bg-muted transition-colors flex items-center">
+            <Link to="/occurrences"
+              className="h-10 px-5 text-sm border border-border rounded-lg hover:bg-muted transition-colors flex items-center">
               Cancelar
             </Link>
-            <button
-              type="submit"
-              disabled={!canSubmit || createOccurrence.isPending}
-              className="h-10 px-5 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
+            <button type="submit" disabled={!canSubmit || createOccurrence.isPending}
+              className="h-10 px-5 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
               {createOccurrence.isPending ? (
                 <><div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> Registrando...</>
               ) : 'Registrar Ocorrência'}

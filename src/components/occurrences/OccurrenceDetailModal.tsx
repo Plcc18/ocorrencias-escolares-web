@@ -201,7 +201,7 @@ export function OccurrenceDetailModal({ occurrence, onClose }: Props) {
                   className="w-full h-8 px-2 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
                 >
                   {teachers?.map(t => (
-                    <option key={t.id} value={t.id}>{t.name} — {t.subject}</option>
+                    <option key={t.id} value={t.id}>{t.name} — {t.subjects}</option>
                   ))}
                 </select>
               ) : (

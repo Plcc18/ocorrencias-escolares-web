@@ -6,6 +6,7 @@ export interface AuthResponse {
   userId: number
   email: string
   role: Role
+  teacherId: number | null
 }
 
 export interface LoginRequest {
@@ -19,4 +20,5 @@ export interface UserMe {
   username: string
   role: Role
   createdAt: string
+  teacherId: number | null
 }
