@@ -211,17 +211,20 @@ export default function NewOccurrencePage() {
               <h3 className="text-sm font-semibold">Tipo de Ocorrência</h3>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {OCCURRENCE_TYPES.map(type => (
-                <button key={type.value} type="button" onClick={() => setOccurrenceType(type.value)}
-                  className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border text-center transition-all ${
-                    occurrenceType === type.value
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border hover:bg-muted'
-                  }`}>
-                  <span className="text-xl">{type.emoji}</span>
-                  <span className="text-xs font-medium text-foreground leading-tight">{type.label}</span>
-                </button>
-              ))}
+              {OCCURRENCE_TYPES.map(type => {
+                const Icon = type.icon
+                return (
+                  <button key={type.value} type="button" onClick={() => setOccurrenceType(type.value)}
+                    className={`flex flex-col items-center gap-2 p-3.5 rounded-lg border text-center transition-all ${
+                      occurrenceType === type.value
+                        ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                        : 'border-border hover:bg-muted'
+                    }`}>
+                    <Icon className={`size-5 ${occurrenceType === type.value ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <span className="text-xs font-medium text-foreground leading-tight">{type.label}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 

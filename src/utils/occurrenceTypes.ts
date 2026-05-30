@@ -1,10 +1,22 @@
 import type { OccurrenceType } from '../types/occurrence'
+import {
+  Zap,
+  UserX,
+  Award,
+  AlertTriangle,
+  Ban,
+  Clock,
+  Smartphone,
+  FileText,
+  type LucideIcon
+} from 'lucide-react'
 
 export interface OccurrenceTypeInfo {
   label: string
   badgeClass: string
   dotClass: string
   emoji: string
+  icon: LucideIcon
 }
 
 export const OCCURRENCE_TYPE_MAP: Record<OccurrenceType, OccurrenceTypeInfo> = {
@@ -13,48 +25,56 @@ export const OCCURRENCE_TYPE_MAP: Record<OccurrenceType, OccurrenceTypeInfo> = {
     badgeClass: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300',
     dotClass: 'bg-orange-500',
     emoji: '⚡',
+    icon: Zap,
   },
   FALTA: {
     label: 'Falta',
     badgeClass: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
     dotClass: 'bg-red-500',
     emoji: '📵',
+    icon: UserX,
   },
   ELOGIO: {
     label: 'Elogio',
     badgeClass: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300',
     dotClass: 'bg-green-500',
     emoji: '⭐',
+    icon: Award,
   },
   ADVERTENCIA: {
     label: 'Advertência',
     badgeClass: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300',
     dotClass: 'bg-yellow-500',
     emoji: '⚠️',
+    icon: AlertTriangle,
   },
   SUSPENSAO: {
     label: 'Suspensão',
     badgeClass: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300',
     dotClass: 'bg-rose-500',
     emoji: '🚫',
+    icon: Ban,
   },
   ATRASO: {
     label: 'Atraso',
     badgeClass: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
     dotClass: 'bg-blue-500',
     emoji: '🕐',
+    icon: Clock,
   },
   CELULAR: {
     label: 'Uso de celular',
     badgeClass: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
     dotClass: 'bg-purple-500',
     emoji: '📱',
+    icon: Smartphone,
   },
   OUTRO: {
     label: 'Outro',
     badgeClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
     dotClass: 'bg-slate-500',
     emoji: '📝',
+    icon: FileText,
   },
 }
 

@@ -152,21 +152,24 @@ export function OccurrenceDetailModal({ occurrence, onClose }: Props) {
             <div className="py-3 border-b border-border">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Tipo de ocorrência</p>
               <div className="grid grid-cols-4 gap-1.5">
-                {OCCURRENCE_TYPES.map(type => (
-                  <button
-                    key={type.value}
-                    type="button"
-                    onClick={() => setOccurrenceType(type.value)}
-                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border text-center transition-all ${
-                      occurrenceType === type.value
-                        ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                        : 'border-border hover:bg-muted'
-                    }`}
-                  >
-                    <span className="text-base">{type.emoji}</span>
-                    <span className="text-xs font-medium leading-tight">{type.label}</span>
-                  </button>
-                ))}
+                {OCCURRENCE_TYPES.map(type => {
+                  const Icon = type.icon
+                  return (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => setOccurrenceType(type.value)}
+                      className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border text-center transition-all ${
+                        occurrenceType === type.value
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-border hover:bg-muted'
+                      }`}
+                    >
+                      <Icon className={`size-4.5 ${occurrenceType === type.value ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <span className="text-xs font-medium leading-tight">{type.label}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}

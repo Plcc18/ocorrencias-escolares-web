@@ -10,13 +10,14 @@ interface OccurrenceBadgeProps {
 
 export function OccurrenceBadge({ type, showEmoji = true, className }: OccurrenceBadgeProps) {
   const info = OCCURRENCE_TYPE_MAP[type] ?? OCCURRENCE_TYPE_MAP.OUTRO
+  const Icon = info.icon
   return (
     <span className={cn(
-      'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+      'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium',
       info.badgeClass,
       className
     )}>
-      {showEmoji && <span>{info.emoji}</span>}
+      {showEmoji && <Icon className="size-3 shrink-0" />}
       {info.label}
     </span>
   )
