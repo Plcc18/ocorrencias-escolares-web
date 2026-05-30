@@ -2,7 +2,8 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { formatDateTime } from '../../utils/format'
 import { getInitials } from '../../utils/format'
-import { X, LogOut, User, Mail, Shield, Calendar } from 'lucide-react'
+import { X, LogOut, User, Mail, Shield, Calendar, BookOpen } from 'lucide-react'
+import { useTeacher } from '../../hooks/useTeachers'
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   ADMIN:   { label: 'Administrador', color: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300' },
@@ -17,6 +18,10 @@ interface Props {
 export function ProfilePanel({ onClose }: Props) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+
+  const { data: teacher, isLoading: loadingTeacher } = useTeacher(
+    user?.role === 'TEACHER' ? user.teacherId : null
+  )
 
   if (!user) return null
 
@@ -106,6 +111,33 @@ export function ProfilePanel({ onClose }: Props) {
                   <span className="text-muted-foreground font-normal">
                     {formatDateTime(user.createdAt)}
                   </span>
+                }
+              />
+            )}
+
+            {user.role === 'TEACHER' && (
+              <InfoRow
+                icon={<BookOpen className="size-3.5" />}
+                label="Disciplinas"
+                value={
+                  loadingTeacher ? (
+                    <div className="h-4 w-24 skeleton-shimmer rounded mt-1" />
+                  ) : (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {(teacher?.subjects ?? []).length === 0 ? (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      ) : (
+                        teacher?.subjects?.map(s => (
+                          <span
+                            key={s}
+                            className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium"
+                          >
+                            {s}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  )
                 }
               />
             )}

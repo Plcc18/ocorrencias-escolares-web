@@ -10,6 +10,14 @@ export function useTeachers(options?: { enabled?: boolean }) {
     staleTime: 120_000,
     ...options,
   })
+}export function useTeacher(id: number | null | undefined, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['teacher', id],
+    queryFn: () => teachersService.getById(id!),
+    staleTime: 120_000,
+    ...options,
+    enabled: !!id && (options?.enabled ?? true),
+  })
 }
 
 export function useCreateTeacher() {
