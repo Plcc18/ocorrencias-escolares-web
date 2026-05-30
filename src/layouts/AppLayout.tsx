@@ -58,8 +58,8 @@ export function AppLayout() {
             <School className="size-4 text-sidebar-primary-foreground" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm font-semibold text-sidebar-foreground leading-none">EscolaGestão</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Ocorrências</p>
+            <h1 className="text-sm font-semibold text-sidebar-foreground leading-none">EEEP Gestão</h1>
+            <p className="text-xs text-sidebar-foreground/65 mt-0.5">Educação Profissional</p>
           </div>
         </div>
 

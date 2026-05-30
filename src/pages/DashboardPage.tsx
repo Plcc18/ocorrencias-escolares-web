@@ -59,16 +59,16 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col flex-1 animate-fadeIn">
-      <div className="h-16 flex items-center justify-between px-6 border-b border-border bg-background shrink-0">
+      <div className="h-16 flex items-center justify-between px-6 border-b border-sidebar-border bg-sidebar text-sidebar-foreground shrink-0">
         <div>
-          <h2 className="text-base font-semibold text-foreground leading-none">
+          <h2 className="text-base font-semibold text-sidebar-foreground leading-none">
             {greeting()}, {user?.username?.split(' ')[0]}
           </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">Visão geral do sistema</p>
+          <p className="text-sm text-sidebar-foreground/65 mt-0.5">Visão geral do sistema</p>
         </div>
         <Link
           to="/occurrences/new"
-          className="h-8 px-3 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1.5"
+          className="h-8 px-3 bg-sidebar-primary text-sidebar-primary-foreground text-sm font-medium rounded-lg hover:bg-sidebar-primary/90 transition-colors flex items-center gap-1.5"
         >
           <Plus className="size-4" /> Nova Ocorrência
         </Link>
