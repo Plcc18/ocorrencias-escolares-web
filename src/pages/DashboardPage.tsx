@@ -1,31 +1,29 @@
-import { useState } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import { useOccurrences } from '../hooks/useOccurrences'
-import { useStudents } from '../hooks/useStudents'
-import { useTeachers } from '../hooks/useTeachers'
-import { useGrades } from '../hooks/useGrades'
-import { OccurrenceBadge } from '../components/common/OccurrenceBadge'
-import { OccurrenceDetailModal } from '../components/occurrences/OccurrenceDetailModal'
-import { formatDate, todayISO } from '../utils/format'
-import { OCCURRENCE_TYPE_MAP } from '../utils/occurrenceTypes'
-import type { Occurrence } from '../types'
-import { FileWarning, GraduationCap, Users, BookOpen, TrendingUp, Clock, Plus } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useOccurrences } from '../hooks/useOccurrences';
+import { useStudents } from '../hooks/useStudents';
+import { useTeachers } from '../hooks/useTeachers';
+import { useGrades } from '../hooks/useGrades';
+import { OccurrenceBadge } from '../components/common/OccurrenceBadge';
+import { OccurrenceDetailModal } from '../components/occurrences/OccurrenceDetailModal';
+import { formatDate, todayISO } from '../utils/format';
+import { OCCURRENCE_TYPE_MAP } from '../utils/occurrenceTypes';
+import type { Occurrence } from '../types';
+import { FileWarning, GraduationCap, Users, BookOpen, TrendingUp, Clock, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface StatCardProps {
-  label: string
-  value: number | string
-  icon: React.ReactNode
-  color: string
-  loading?: boolean
+  label: string;
+  value: number | string;
+  icon: React.ReactNode;
+  color: string;
+  loading?: boolean;
 }
 
 function StatCard({ label, value, icon, color, loading }: StatCardProps) {
   return (
     <div className="bg-card border border-border rounded-xl p-5 flex items-start gap-4">
-      <div className={`p-2.5 rounded-lg ${color}`}>
-        {icon}
-      </div>
+      <div className={`p-2.5 rounded-lg ${color}`}>{icon}</div>
       <div className="min-w-0">
         <p className="text-sm text-muted-foreground">{label}</p>
         {loading ? (
@@ -35,38 +33,40 @@ function StatCard({ label, value, icon, color, loading }: StatCardProps) {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 export default function DashboardPage() {
-  const { user, isAdmin } = useAuth()
-  const { data: occurrencesData, isLoading: loadingOcc } = useOccurrences({ size: 50 })
-  const { data: studentsData, isLoading: loadingStudents } = useStudents({})
-  const { data: teachers, isLoading: loadingTeachers } = useTeachers({ enabled: isAdmin })
-  const { data: grades, isLoading: loadingGrades } = useGrades({ enabled: isAdmin })
+  const { user, isAdmin } = useAuth();
+  const { data: occurrencesData, isLoading: loadingOcc } = useOccurrences({ size: 50 });
+  const { data: studentsData, isLoading: loadingStudents } = useStudents({});
+  const { data: teachers, isLoading: loadingTeachers } = useTeachers({ enabled: isAdmin });
+  const { data: grades, isLoading: loadingGrades } = useGrades({ enabled: isAdmin });
 
-  const [selectedOccurrence, setSelectedOccurrence] = useState<Occurrence | null>(null)
+  const [selectedOccurrence, setSelectedOccurrence] = useState<Occurrence | null>(null);
 
-  const occurrenceSample = occurrencesData?.content ?? []
-  const recentOccurrences = occurrenceSample.slice(0, 5)
-  const totalStudents = studentsData?.totalElements ?? 0
-  const totalOccurrences = occurrencesData?.totalElements ?? 0
-  const todayOccurrences = occurrenceSample.filter(occ => occ.occurrenceDate === todayISO()).length
+  const occurrenceSample = occurrencesData?.content ?? [];
+  const recentOccurrences = occurrenceSample.slice(0, 5);
+  const totalStudents = studentsData?.totalElements ?? 0;
+  const totalOccurrences = occurrencesData?.totalElements ?? 0;
+  const todayOccurrences = occurrenceSample.filter(
+    (occ) => occ.occurrenceDate === todayISO(),
+  ).length;
   const typeSummary = Object.entries(
     occurrenceSample.reduce<Record<string, number>>((acc, occ) => {
-      acc[occ.occurrenceType] = (acc[occ.occurrenceType] ?? 0) + 1
-      return acc
-    }, {})
+      acc[occ.occurrenceType] = (acc[occ.occurrenceType] ?? 0) + 1;
+      return acc;
+    }, {}),
   )
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 4)
+    .slice(0, 4);
 
   const greeting = () => {
-    const h = new Date().getHours()
-    if (h < 12) return 'Bom dia'
-    if (h < 18) return 'Boa tarde'
-    return 'Boa noite'
-  }
+    const h = new Date().getHours();
+    if (h < 12) return 'Bom dia';
+    if (h < 18) return 'Boa tarde';
+    return 'Boa noite';
+  };
 
   return (
     <div className="flex flex-col flex-1 animate-fadeIn">
@@ -132,34 +132,98 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <div>
               <h3 className="text-sm font-semibold text-foreground">Tipos mais registrados</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Com base nas ocorrências mais recentes</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Com base nas ocorrências mais recentes
+              </p>
             </div>
           </div>
+
+          {/* compute and show typeSummary + top turmas */}
           {loadingOcc ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-5">
-              {[...Array(4)].map((_, i) => <div key={i} className="h-16 skeleton-shimmer rounded-lg" />)}
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-16 skeleton-shimmer rounded-lg" />
+              ))}
             </div>
           ) : typeSummary.length === 0 ? (
-            <div className="px-5 py-8 text-sm text-muted-foreground text-center">Ainda não há dados para comparar.</div>
+            <div className="px-5 py-8 text-sm text-muted-foreground text-center">
+              Ainda não há dados para comparar.
+            </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-5">
-              {typeSummary.map(([type, count]) => {
-                const info = OCCURRENCE_TYPE_MAP[type as keyof typeof OCCURRENCE_TYPE_MAP]
-                return (
-                  <div key={type} className="border border-border rounded-lg p-3 bg-background">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium text-foreground truncate">{info?.label ?? type}</span>
-                      <span className="text-lg font-semibold text-primary">{count}</span>
+            <div className="p-5 grid grid-cols-1 lg:grid-cols-5 gap-4">
+              <div className="lg:col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {typeSummary.map(([type, count]) => {
+                  const info = OCCURRENCE_TYPE_MAP[type as keyof typeof OCCURRENCE_TYPE_MAP];
+                  return (
+                    <div key={type} className="border border-border rounded-lg p-3 bg-background">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {info?.label ?? type}
+                        </span>
+                        <span className="text-lg font-semibold text-primary">{count}</span>
+                      </div>
+                      <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              (count / Math.max(...typeSummary.map(([, value]) => value))) * 100,
+                            )}%`,
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${Math.min(100, (count / Math.max(...typeSummary.map(([, value]) => value))) * 100)}%` }}
-                      />
-                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Side card: Turmas com mais ocorrências */}
+              <div className="lg:col-span-1 border border-border rounded-lg p-3 bg-background">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      Turmas com mais ocorrências
+                    </p>
+                    <p className="text-xs text-muted-foreground">Rank das turmas</p>
                   </div>
-                )
-              })}
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {(() => {
+                    const gradeSummary = Object.entries(
+                      occurrenceSample.reduce<Record<string, number>>((acc, occ) => {
+                        const key = occ.gradeName || '—';
+                        acc[key] = (acc[key] ?? 0) + 1;
+                        return acc;
+                      }, {}),
+                    )
+                      .sort((a, b) => b[1] - a[1])
+                      .slice(0, 5);
+
+                    const maxCount = Math.max(1, ...gradeSummary.map(([, v]) => v));
+
+                    return gradeSummary.map(([grade, count], idx) => (
+                      <div key={grade} className="flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{grade}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {count} ocorrênc{count === 1 ? 'ia' : 'ias'}
+                          </p>
+                        </div>
+                        <div className="w-20 ml-3">
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary rounded-full"
+                              style={{ width: `${Math.round((count / maxCount) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -192,18 +256,24 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {recentOccurrences.map(occ => (
+              {recentOccurrences.map((occ) => (
                 <button
                   key={occ.id}
                   onClick={() => setSelectedOccurrence(occ)}
                   className="w-full text-left px-5 py-3.5 flex items-center gap-4 hover:bg-muted/30 transition-colors group"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{occ.studentName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{occ.gradeName} • {occ.teacherName}</p>
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {occ.studentName}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {occ.gradeName} • {occ.teacherName}
+                    </p>
                   </div>
                   <OccurrenceBadge type={occ.occurrenceType} />
-                  <p className="text-xs text-muted-foreground shrink-0">{formatDate(occ.occurrenceDate)}</p>
+                  <p className="text-xs text-muted-foreground shrink-0">
+                    {formatDate(occ.occurrenceDate)}
+                  </p>
                 </button>
               ))}
             </div>
@@ -218,5 +288,5 @@ export default function DashboardPage() {
         />
       )}
     </div>
-  )
+  );
 }
