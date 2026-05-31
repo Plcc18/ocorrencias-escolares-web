@@ -12,7 +12,7 @@ export function OccurrenceBadge({ type, showEmoji = true, className }: Occurrenc
   const info = OCCURRENCE_TYPE_MAP[type] ?? OCCURRENCE_TYPE_MAP.OUTRO
   const Icon = info.icon
   return (
-    <span className={cn(
+    <span title={info.label} className={cn(
       'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium',
       info.badgeClass,
       className

@@ -58,7 +58,7 @@ export default function OccurrencesPage() {
         <select
           value={filters.gradeId ?? ''}
           onChange={e => setFilters(f => ({ ...f, gradeId: e.target.value ? Number(e.target.value) : undefined, page: 0 }))}
-          className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+          className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
           <option value="">Todas as turmas</option>
           {grades?.map(g => <option key={g.id} value={g.id}>{g.displayName}</option>)}
@@ -68,7 +68,7 @@ export default function OccurrencesPage() {
           <select
             value={filters.teacherId ?? ''}
             onChange={e => setFilters(f => ({ ...f, teacherId: e.target.value ? Number(e.target.value) : undefined, page: 0 }))}
-            className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+            className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <option value="">Todos os professores</option>
             {teachers?.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -78,7 +78,7 @@ export default function OccurrencesPage() {
         <select
           value={filters.occurrenceType ?? ''}
           onChange={e => setFilters(f => ({ ...f, occurrenceType: (e.target.value as any) || undefined, page: 0 }))}
-          className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+          className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
           <option value="">Todos os tipos</option>
           {OCCURRENCE_TYPES.map(t => (
@@ -91,27 +91,27 @@ export default function OccurrencesPage() {
             type="date"
             value={filters.startDate ?? ''}
             onChange={e => setFilters(f => ({ ...f, startDate: e.target.value || undefined, page: 0 }))}
-            className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+            className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           />
           <input
             type="date"
             value={filters.endDate ?? ''}
             onChange={e => setFilters(f => ({ ...f, endDate: e.target.value || undefined, page: 0 }))}
-            className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+            className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           />
         </div>
 
         {(filters.gradeId || filters.teacherId || filters.occurrenceType || filters.startDate) && (
           <button
             onClick={() => setFilters({ page: 0, size: 20 })}
-            className="h-8 px-2 text-xs text-muted-foreground border border-border rounded-lg hover:bg-muted flex items-center gap-1 transition-colors"
+            className="h-8 px-2 text-xs text-muted-foreground border border-border rounded-lg hover:bg-muted flex items-center gap-1 motion-safe:transition-colors"
           >
             <X className="size-3" /> Limpar
           </button>
         )}
       </div>
 
-      {/* Table */}
+      {/* Table for md+, Cards for small screens */}
       <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="divide-y divide-border">
@@ -139,57 +139,80 @@ export default function OccurrencesPage() {
             }
           />
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 sticky top-0">
-              <tr className="border-b border-border">
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Aluno</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tipo</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Turma</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Professor</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Data</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Descrição</th>
-                {isAdmin && <th className="px-4 py-3 text-right font-medium text-muted-foreground">Ações</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
+          <>
+            {/* Cards for small screens */}
+            <div className="md:hidden space-y-3 px-4 py-3">
               {occurrences.map(occ => (
-                <tr
-                  key={occ.id}
-                  onClick={() => handleOpenDetails(occ)}
-                  className="hover:bg-muted/30 transition-colors cursor-pointer group"
-                >
-                  <td className="px-6 py-3.5 font-medium text-foreground">{occ.studentName}</td>
-                  <td className="px-4 py-3.5"><OccurrenceBadge type={occ.occurrenceType} /></td>
-                  <td className="px-4 py-3.5 text-muted-foreground">{occ.gradeName}</td>
-                  <td className="px-4 py-3.5 text-muted-foreground">{occ.teacherName}</td>
-                  <td className="px-4 py-3.5 text-muted-foreground">{formatDate(occ.occurrenceDate)}</td>
-                  <td className="px-4 py-3.5 text-muted-foreground max-w-xs">
-                    <span className="truncate block">{occ.description}</span>
-                  </td>
-                  {isAdmin && (
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleOpenDetails(occ, true) }}
-                          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                          title="Editar"
-                        >
-                          <Pencil className="size-3.5" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setConfirmDelete(occ.id) }}
-                          className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                          title="Remover"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
+                <div key={occ.id} onClick={() => handleOpenDetails(occ)} className="bg-card border border-border rounded-lg p-3 shadow-sm hover:shadow-md cursor-pointer motion-safe:transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
+                        <OccurrenceBadge type={occ.occurrenceType} />
                       </div>
-                    </td>
-                  )}
-                </tr>
+                      <div>
+                        <div className="font-medium text-foreground">{occ.studentName}</div>
+                        <div className="text-xs text-muted-foreground">{occ.gradeName} • {formatDate(occ.occurrenceDate)}</div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground max-w-xs truncate">{occ.description}</div>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            {/* Table for md+ */}
+            <table className="w-full text-sm hidden md:table">
+              <thead className="bg-muted/50 sticky top-0">
+                <tr className="border-b border-border">
+                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Aluno</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tipo</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Turma</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Professor</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Data</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Descrição</th>
+                  {isAdmin && <th className="px-4 py-3 text-right font-medium text-muted-foreground">Ações</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {occurrences.map(occ => (
+                  <tr
+                    key={occ.id}
+                    onClick={() => handleOpenDetails(occ)}
+                    className="hover:bg-muted/30 transition-colors cursor-pointer group"
+                  >
+                    <td className="px-6 py-3.5 font-medium text-foreground">{occ.studentName}</td>
+                    <td className="px-4 py-3.5"><OccurrenceBadge type={occ.occurrenceType} /></td>
+                    <td className="px-4 py-3.5 text-muted-foreground">{occ.gradeName}</td>
+                    <td className="px-4 py-3.5 text-muted-foreground">{occ.teacherName}</td>
+                    <td className="px-4 py-3.5 text-muted-foreground">{formatDate(occ.occurrenceDate)}</td>
+                    <td className="px-4 py-3.5 text-muted-foreground max-w-xs">
+                      <span className="truncate block">{occ.description}</span>
+                    </td>
+                    {isAdmin && (
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleOpenDetails(occ, true) }}
+                            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            title="Editar"
+                          >
+                            <Pencil className="size-3.5" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfirmDelete(occ.id) }}
+                            className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            title="Remover"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
 

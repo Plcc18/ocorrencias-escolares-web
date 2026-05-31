@@ -9,7 +9,7 @@ interface StatusBadgeProps {
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const isActive = status === 'ATIVO'
   return (
-    <span className={cn(
+    <span title={isActive ? 'Ativo' : 'Inativo'} className={cn(
       'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium',
       isActive
         ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300'

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useGrades } from '../../hooks/useGrades'
 import { useTeachers } from '../../hooks/useTeachers'
 import { useStudents } from '../../hooks/useStudents'
@@ -59,6 +59,23 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
 
   const { data: teachers } = useTeachers({ enabled: canEdit })
 
+  const modalRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    // lock scroll
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    // focus first interactive element
+    const timeout = setTimeout(() => {
+      const focusable = modalRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      focusable?.focus()
+    }, 50)
+    return () => {
+      document.body.style.overflow = prev
+      clearTimeout(timeout)
+    }
+  }, [])
+
   const handleSave = async () => {
     if (occurrenceDate > todayISO()) {
       toast.error('A data da ocorrência não pode ser futura.')
@@ -101,7 +118,7 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-xl animate-fadeIn flex flex-col max-h-[90vh]">
+      <div ref={modalRef} role="dialog" aria-modal="true" tabIndex={-1} className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-xl animate-pop flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
@@ -115,7 +132,7 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
             {canEdit && !editing && (
               <button
                 onClick={() => setEditing(true)}
-                className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+                className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-muted motion-safe:transition-colors flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
               >
                 <Pencil className="size-3.5" /> Editar
               </button>
@@ -124,14 +141,14 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
               <>
                 <button
                   onClick={handleDiscard}
-                  className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+                  className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-muted motion-safe:transition-colors text-muted-foreground"
                 >
                   Descartar
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                  className="h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 motion-safe:transition-colors flex items-center gap-1.5"
                 >
                   {saving ? (
                     <div className="w-3 h-3 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
@@ -144,7 +161,7 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
             )}
             <button
               onClick={onClose}
-              className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground motion-safe:transition-colors"
             >
               <X className="size-4" />
             </button>
@@ -166,7 +183,7 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
                       key={type.value}
                       type="button"
                       onClick={() => setOccurrenceType(type.value)}
-                      className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border text-center transition-all ${
+                      className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border text-center motion-safe:transition-all ${
                         occurrenceType === type.value
                           ? 'border-primary bg-primary/5 ring-1 ring-primary'
                           : 'border-border hover:bg-muted'
@@ -208,7 +225,7 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
                 <select
                   value={teacherId}
                   onChange={e => setTeacherId(Number(e.target.value))}
-                  className="w-full h-8 px-2 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+                  className="w-full h-8 px-2 border border-input rounded-lg text-sm bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   {teachers?.map(t => (
                     <option key={t.id} value={t.id}>{t.name}</option>
@@ -232,9 +249,9 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
                     max={todayISO()}
                     onChange={e => setOccurrenceDate(e.target.value)}
                     aria-invalid={isFutureDate}
-                    className={`h-8 px-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 ${
+                    className={`h-8 px-2 border rounded-lg text-sm bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                       isFutureDate
-                        ? 'border-destructive text-destructive focus:ring-destructive/30'
+                        ? 'border-destructive text-destructive focus-visible:ring-destructive/30'
                         : 'border-input'
                     }`}
                   />
@@ -268,7 +285,7 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
                     value={description}
                     onChange={e => setDescription(e.target.value)}
                     rows={4}
-                    className="w-full px-3 py-2 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 resize-none"
+                    className="w-full px-3 py-2 border border-input rounded-lg text-sm bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 resize-none"
                   />
                 ) : (
                   <p className="text-sm text-foreground leading-relaxed">{displayDescription}</p>

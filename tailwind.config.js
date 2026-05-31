@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+import forms from '@tailwindcss/forms'
 export default {
   darkMode: 'class',
   content: [
@@ -60,7 +61,21 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: 0, transform: 'translateY(6px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+        pop: {
+          '0%': { opacity: 0, transform: 'scale(.98)' },
+          '100%': { opacity: 1, transform: 'scale(1)' },
+        },
+      },
+      animation: {
+        fadeIn: 'fadeIn 160ms ease-out',
+        pop: 'pop 160ms cubic-bezier(.2,.9,.2,1)'
+      }
     },
   },
-  plugins: [],
+  plugins: [forms],
 }
