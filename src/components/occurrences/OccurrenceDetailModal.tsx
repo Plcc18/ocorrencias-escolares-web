@@ -1,24 +1,32 @@
-import { useState, useEffect, useRef } from 'react'
-import { useGrades } from '../../hooks/useGrades'
-import { useTeachers } from '../../hooks/useTeachers'
-import { useStudents } from '../../hooks/useStudents'
-import { OccurrenceBadge } from '../common/OccurrenceBadge'
-import { formatDate, formatDateTime, todayISO } from '../../utils/format'
-import { OCCURRENCE_TYPES } from '../../utils/occurrenceTypes'
-import { occurrencesService } from '../../api/occurrences'
-import type { Occurrence, OccurrenceType } from '../../types'
-import { useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
+import { useState, useEffect, useRef } from 'react';
+import { useTeachers } from '../../hooks/useTeachers';
+import { OccurrenceBadge } from '../common/OccurrenceBadge';
+import { formatDate, formatDateTime, todayISO } from '../../utils/format';
+import { OCCURRENCE_TYPES } from '../../utils/occurrenceTypes';
+import { occurrencesService } from '../../api/occurrences';
+import type { Occurrence, OccurrenceType } from '../../types';
+import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import {
-  X, Pencil, Save, User, GraduationCap, Users,
-  Calendar, Clock, FileText, Tag, ChevronRight
-} from 'lucide-react'
-import { useAuth } from '../../contexts/AuthContext'
+  X,
+  Pencil,
+  Save,
+  User,
+  GraduationCap,
+  Users,
+  Calendar,
+  Clock,
+  FileText,
+  Tag,
+  ChevronRight,
+} from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { CustomSelect } from '../common/CustomSelect';
 
 interface Props {
-  occurrence: Occurrence
-  onClose: () => void
-  initialEditing?: boolean
+  occurrence: Occurrence;
+  onClose: () => void;
+  initialEditing?: boolean;
 }
 
 function InfoRow({
@@ -26,9 +34,9 @@ function InfoRow({
   label,
   value,
 }: {
-  icon: React.ReactNode
-  label: string
-  value: React.ReactNode
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
 }) {
   return (
     <div className="flex items-start gap-3 py-3 border-b border-border last:border-0">
@@ -36,53 +44,57 @@ function InfoRow({
         <span className="text-muted-foreground">{icon}</span>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{label}</p>
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">
+          {label}
+        </p>
         <div className="text-sm text-foreground font-medium">{value}</div>
       </div>
     </div>
-  )
+  );
 }
 
 export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = false }: Props) {
-  const { isAdmin } = useAuth()
-  const canEdit = isAdmin
-  const qc = useQueryClient()
+  const { isAdmin } = useAuth();
+  const canEdit = isAdmin;
+  const qc = useQueryClient();
 
-  const [editing, setEditing] = useState(initialEditing && canEdit)
-  const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState(initialEditing && canEdit);
+  const [saving, setSaving] = useState(false);
 
   // Edit form state
-  const [description, setDescription] = useState(occurrence.description)
-  const [occurrenceType, setOccurrenceType] = useState<OccurrenceType>(occurrence.occurrenceType)
-  const [occurrenceDate, setOccurrenceDate] = useState(occurrence.occurrenceDate)
-  const [teacherId, setTeacherId] = useState(occurrence.teacherId)
+  const [description, setDescription] = useState(occurrence.description);
+  const [occurrenceType, setOccurrenceType] = useState<OccurrenceType>(occurrence.occurrenceType);
+  const [occurrenceDate, setOccurrenceDate] = useState(occurrence.occurrenceDate);
+  const [teacherId, setTeacherId] = useState(occurrence.teacherId);
 
-  const { data: teachers } = useTeachers({ enabled: canEdit })
+  const { data: teachers } = useTeachers({ enabled: canEdit });
 
-  const modalRef = useRef<HTMLDivElement | null>(null)
+  const modalRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     // lock scroll
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     // focus first interactive element
     const timeout = setTimeout(() => {
-      const focusable = modalRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
-      focusable?.focus()
-    }, 50)
+      const focusable = modalRef.current?.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      focusable?.focus();
+    }, 50);
     return () => {
-      document.body.style.overflow = prev
-      clearTimeout(timeout)
-    }
-  }, [])
+      document.body.style.overflow = prev;
+      clearTimeout(timeout);
+    };
+  }, []);
 
   const handleSave = async () => {
     if (occurrenceDate > todayISO()) {
-      toast.error('A data da ocorrência não pode ser futura.')
-      return
+      toast.error('A data da ocorrência não pode ser futura.');
+      return;
     }
 
-    setSaving(true)
+    setSaving(true);
     try {
       await occurrencesService.update(occurrence.id, {
         description,
@@ -90,36 +102,41 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
         occurrenceDate,
         studentId: occurrence.studentId,
         teacherId,
-      })
-      qc.invalidateQueries({ queryKey: ['occurrences'] })
-      toast.success('Ocorrência atualizada!')
-      setEditing(false)
+      });
+      qc.invalidateQueries({ queryKey: ['occurrences'] });
+      toast.success('Ocorrência atualizada!');
+      setEditing(false);
       // Update local display without closing
     } catch {
       // handled by interceptor
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleDiscard = () => {
-    setDescription(occurrence.description)
-    setOccurrenceType(occurrence.occurrenceType)
-    setOccurrenceDate(occurrence.occurrenceDate)
-    setTeacherId(occurrence.teacherId)
-    setEditing(false)
-  }
+    setDescription(occurrence.description);
+    setOccurrenceType(occurrence.occurrenceType);
+    setOccurrenceDate(occurrence.occurrenceDate);
+    setTeacherId(occurrence.teacherId);
+    setEditing(false);
+  };
 
   // Use updated values when in edit mode, original otherwise
-  const displayDescription = editing ? description : occurrence.description
-  const displayType = editing ? occurrenceType : occurrence.occurrenceType
-  const displayDate = editing ? occurrenceDate : occurrence.occurrenceDate
-  const isFutureDate = occurrenceDate > todayISO()
+  const displayDescription = editing ? description : occurrence.description;
+  const displayType = editing ? occurrenceType : occurrence.occurrenceType;
+  const displayDate = editing ? occurrenceDate : occurrence.occurrenceDate;
+  const isFutureDate = occurrenceDate > todayISO();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div ref={modalRef} role="dialog" aria-modal="true" tabIndex={-1} className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-xl animate-pop flex flex-col max-h-[90vh]">
-
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-xl animate-pop flex flex-col max-h-[90vh]"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-3 min-w-0">
@@ -170,14 +187,15 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
 
         {/* Content */}
         <div className="overflow-y-auto flex-1 px-6 py-2">
-
           {/* Type selector (edit mode) */}
           {editing && (
             <div className="py-3 border-b border-border">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Tipo de ocorrência</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">
+                Tipo de ocorrência
+              </p>
               <div className="grid grid-cols-4 gap-1.5">
-                {OCCURRENCE_TYPES.map(type => {
-                  const Icon = type.icon
+                {OCCURRENCE_TYPES.map((type) => {
+                  const Icon = type.icon;
                   return (
                     <button
                       key={type.value}
@@ -189,10 +207,14 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
                           : 'border-border hover:bg-muted'
                       }`}
                     >
-                      <Icon className={`size-4.5 ${occurrenceType === type.value ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <Icon
+                        className={`size-4.5 ${
+                          occurrenceType === type.value ? 'text-primary' : 'text-muted-foreground'
+                        }`}
+                      />
                       <span className="text-xs font-medium leading-tight">{type.label}</span>
                     </button>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -222,15 +244,18 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
             label="Professor"
             value={
               editing ? (
-                <select
+                <CustomSelect
                   value={teacherId}
-                  onChange={e => setTeacherId(Number(e.target.value))}
-                  className="w-full h-8 px-2 border border-input rounded-lg text-sm bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  onChange={(e) => setTeacherId(Number(e.target.value))}
+                  className="w-full"
+                  placeholder="Selecionar professor"
                 >
-                  {teachers?.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                  {teachers?.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
                   ))}
-                </select>
+                </CustomSelect>
               ) : (
                 occurrence.teacherName
               )
@@ -247,7 +272,7 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
                     type="date"
                     value={occurrenceDate}
                     max={todayISO()}
-                    onChange={e => setOccurrenceDate(e.target.value)}
+                    onChange={(e) => setOccurrenceDate(e.target.value)}
                     aria-invalid={isFutureDate}
                     className={`h-8 px-2 border rounded-lg text-sm bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                       isFutureDate
@@ -279,11 +304,13 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
                 <FileText className="size-4 text-muted-foreground" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1.5">Descrição</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1.5">
+                  Descrição
+                </p>
                 {editing ? (
                   <textarea
                     value={description}
-                    onChange={e => setDescription(e.target.value)}
+                    onChange={(e) => setDescription(e.target.value)}
                     rows={4}
                     className="w-full px-3 py-2 border border-input rounded-lg text-sm bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 resize-none"
                   />
@@ -301,7 +328,9 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
               <span className="text-muted-foreground font-normal">
                 {formatDateTime(occurrence.createdAt)}
                 {occurrence.updatedAt !== occurrence.createdAt && (
-                  <span className="ml-2 text-xs">(editado {formatDateTime(occurrence.updatedAt)})</span>
+                  <span className="ml-2 text-xs">
+                    (editado {formatDateTime(occurrence.updatedAt)})
+                  </span>
                 )}
               </span>
             }
@@ -314,5 +343,5 @@ export function OccurrenceDetailModal({ occurrence, onClose, initialEditing = fa
         </div>
       </div>
     </div>
-  )
+  );
 }

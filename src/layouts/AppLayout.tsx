@@ -11,7 +11,6 @@ import {
   ChevronRight,
   School,
   TrendingUp,
-  ChevronLeft,
   Menu,
   X,
 } from 'lucide-react';
@@ -50,7 +49,7 @@ function NavItem({ to, icon, label }: NavItemProps) {
 export function AppLayout() {
   const { user, isAdmin, isTeacher } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = false;
   const [mobileOpen, setMobileOpen] = useState(false);
   const mobileButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -95,13 +94,6 @@ export function AppLayout() {
                 <p className="text-xs text-sidebar-foreground/65 mt-0.5">Educação Profissional</p>
               </div>
             )}
-            <button
-              onClick={() => setCollapsed((c) => !c)}
-              aria-label={collapsed ? 'Expandir barra lateral' : 'Recolher barra lateral'}
-              className="ml-auto p-1 rounded hover:bg-muted transition-colors"
-            >
-              {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
-            </button>
           </div>
         </div>
 

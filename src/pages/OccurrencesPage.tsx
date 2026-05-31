@@ -12,7 +12,7 @@ import { formatDate } from '../utils/format';
 import { OCCURRENCE_TYPES } from '../utils/occurrenceTypes';
 import type { Occurrence, OccurrenceFilters, OccurrenceType } from '../types';
 import { Plus, FileWarning, X, Trash2, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
-
+import { CustomSelect } from '../components/common/CustomSelect';
 export default function OccurrencesPage() {
   const { isAdmin } = useAuth();
   const [filters, setFilters] = useState<OccurrenceFilters>({ page: 0, size: 20 });
@@ -57,7 +57,7 @@ export default function OccurrencesPage() {
 
       {/* Filters */}
       <div className="px-6 py-3 border-b border-border bg-background flex items-center gap-3 flex-wrap">
-        <select
+        <CustomSelect
           value={filters.gradeId ?? ''}
           onChange={(e) =>
             setFilters((f) => ({
@@ -66,18 +66,19 @@ export default function OccurrencesPage() {
               page: 0,
             }))
           }
-          className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 custom-select"
+          className="w-48"
+          placeholder="Todas as turmas"
+          variant="outline"
         >
-          <option value="">Todas as turmas</option>
           {grades?.map((g) => (
             <option key={g.id} value={g.id}>
               {g.displayName}
             </option>
           ))}
-        </select>
+        </CustomSelect>
 
         {isAdmin && (
-          <select
+          <CustomSelect
             value={filters.teacherId ?? ''}
             onChange={(e) =>
               setFilters((f) => ({
@@ -86,32 +87,40 @@ export default function OccurrencesPage() {
                 page: 0,
               }))
             }
-            className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 custom-select"
+            className="w-56"
+            placeholder="Todos os professores"
+            variant="outline"
           >
-            <option value="">Todos os professores</option>
             {teachers?.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
               </option>
             ))}
-          </select>
+          </CustomSelect>
         )}
 
-        <select
+        <CustomSelect
           value={filters.occurrenceType ?? ''}
           onChange={(e) => {
             const v = e.target.value as OccurrenceType | '';
             setFilters((f) => ({ ...f, occurrenceType: v !== '' ? v : undefined, page: 0 }));
           }}
-          className="h-8 px-2 text-sm border border-input rounded-lg bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 custom-select"
+          className="w-48"
+          placeholder="Todos os tipos"
+          variant="outline"
         >
-          <option value="">Todos os tipos</option>
-          {OCCURRENCE_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.emoji} {t.label}
-            </option>
-          ))}
-        </select>
+          {OCCURRENCE_TYPES.map((t) => {
+            const Icon = t.icon;
+            return (
+              <option key={t.value} value={t.value}>
+                <span className="inline-flex items-center gap-2">
+                  <Icon className="size-4 text-muted-foreground" />
+                  <span>{t.label}</span>
+                </span>
+              </option>
+            );
+          })}
+        </CustomSelect>
 
         <div className="flex gap-2">
           <input

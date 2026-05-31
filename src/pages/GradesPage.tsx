@@ -1,112 +1,122 @@
-import { useState } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import { useGrades, useCreateGrade, useUpdateGrade, useDeleteGrade } from '../hooks/useGrades'
-import { useCourses } from '../hooks/useCourses'
-import { useAuth } from '../contexts/AuthContext'
-import { PageHeader } from '../components/common/PageHeader'
-import { EmptyState } from '../components/common/EmptyState'
-import { GRADE_SHIFTS, SHIFT_LABELS, SHIFT_COLORS } from '../utils/occurrenceTypes'
-import type { Grade, GradeDTO } from '../types'
-import { Plus, Pencil, Trash2, BookOpen, X, Search, Users } from 'lucide-react'
+import { useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useGrades, useCreateGrade, useUpdateGrade, useDeleteGrade } from '../hooks/useGrades';
+import { useCourses } from '../hooks/useCourses';
+import { useAuth } from '../contexts/AuthContext';
+import { PageHeader } from '../components/common/PageHeader';
+import { EmptyState } from '../components/common/EmptyState';
+import { GRADE_SHIFTS, SHIFT_LABELS, SHIFT_COLORS } from '../utils/occurrenceTypes';
+import type { Grade, GradeDTO } from '../types';
+import { Plus, Pencil, Trash2, BookOpen, X, Search, Users } from 'lucide-react';
+import { CustomSelect } from '../components/common/CustomSelect';
 
-const currentYear = new Date().getFullYear()
-const HISTORY_YEARS = 2
+const currentYear = new Date().getFullYear();
+const HISTORY_YEARS = 2;
 
 const YEAR_OPTIONS = Array.from(
   { length: HISTORY_YEARS + 1 },
-  (_, i) => currentYear - HISTORY_YEARS + i
-)
+  (_, i) => currentYear - HISTORY_YEARS + i,
+);
 
 const INITIAL_FORM: GradeDTO = {
   gradeLevel: 1,
   schoolYear: currentYear,
   courseId: 0,
   shift: 'MANHA',
-}
+};
 
-function buildDisplayName(gradeLevel: number, courseAcronym: string, schoolYear: number, shift: GradeDTO['shift']): string {
-  if (!courseAcronym) return `${gradeLevel}º - ${schoolYear}`
-  const base = `${gradeLevel}º ${courseAcronym} - ${schoolYear}`
+function buildDisplayName(
+  gradeLevel: number,
+  courseAcronym: string,
+  schoolYear: number,
+  shift: GradeDTO['shift'],
+): string {
+  if (!courseAcronym) return `${gradeLevel}º - ${schoolYear}`;
+  const base = `${gradeLevel}º ${courseAcronym} - ${schoolYear}`;
   if (shift && shift !== 'MANHA') {
-    const labels: Record<string, string> = { TARDE: 'Tarde', NOITE: 'Noite', INTEGRAL: 'Integral' }
-    return `${base} (${labels[shift]})`
+    const labels: Record<string, string> = { TARDE: 'Tarde', NOITE: 'Noite', INTEGRAL: 'Integral' };
+    return `${base} (${labels[shift]})`;
   }
-  return base
+  return base;
 }
 
 export default function GradesPage() {
-  const navigate = useNavigate()
-  const { isAdmin } = useAuth()
-  const [searchParams] = useSearchParams()
-  const { data: grades, isLoading } = useGrades()
-  const { data: courses } = useCourses()
-  const createGrade = useCreateGrade()
-  const updateGrade = useUpdateGrade()
-  const deleteGrade = useDeleteGrade()
+  const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { data: grades, isLoading } = useGrades();
+  const { data: courses } = useCourses();
+  const createGrade = useCreateGrade();
+  const updateGrade = useUpdateGrade();
+  const deleteGrade = useDeleteGrade();
 
-  const [showModal, setShowModal] = useState(false)
-  const [editing, setEditing] = useState<Grade | null>(null)
-  const [form, setForm] = useState<GradeDTO>(INITIAL_FORM)
-  const [search, setSearch] = useState(searchParams.get('course') || '')
-  const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<Grade | null>(null);
+  const [form, setForm] = useState<GradeDTO>(INITIAL_FORM);
+  const [search, setSearch] = useState(searchParams.get('course') || '');
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
-  const filtered = (grades ?? []).filter(g => {
-    const q = search.toLowerCase()
+  const filtered = (grades ?? []).filter((g) => {
+    const q = search.toLowerCase();
     return (
       g.displayName.toLowerCase().includes(q) ||
       g.courseName.toLowerCase().includes(q) ||
       g.courseAcronym.toLowerCase().includes(q) ||
       String(g.schoolYear).includes(q)
-    )
-  })
+    );
+  });
 
-  const selectedCourse = courses?.find(c => c.id === form.courseId)
+  const selectedCourse = courses?.find((c) => c.id === form.courseId);
   const previewName = selectedCourse
     ? buildDisplayName(form.gradeLevel, selectedCourse.acronym, form.schoolYear, form.shift)
-    : null
+    : null;
 
   const openCreate = () => {
-    if (!isAdmin) return
-    setEditing(null)
-    setForm(INITIAL_FORM)
-    setShowModal(true)
-  }
+    if (!isAdmin) return;
+    setEditing(null);
+    setForm(INITIAL_FORM);
+    setShowModal(true);
+  };
 
   const openEdit = (grade: Grade) => {
-    if (!isAdmin) return
-    setEditing(grade)
+    if (!isAdmin) return;
+    setEditing(grade);
     setForm({
       gradeLevel: grade.gradeLevel,
       schoolYear: grade.schoolYear,
       courseId: grade.courseId,
       shift: grade.shift,
-    })
-    setShowModal(true)
-  }
+    });
+    setShowModal(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!isAdmin) return
-    if (!form.courseId) return
+    e.preventDefault();
+    if (!isAdmin) return;
+    if (!form.courseId) return;
     try {
       if (editing) {
-        await updateGrade.mutateAsync({ id: editing.id, data: form })
+        await updateGrade.mutateAsync({ id: editing.id, data: form });
       } else {
-        await createGrade.mutateAsync(form)
+        await createGrade.mutateAsync(form);
       }
-      setShowModal(false)
-    } catch { /* handled */ }
-  }
+      setShowModal(false);
+    } catch {
+      /* handled */
+    }
+  };
 
   const handleDelete = async (id: number) => {
-    if (!isAdmin) return
+    if (!isAdmin) return;
     try {
-      await deleteGrade.mutateAsync(id)
-      setConfirmDelete(null)
-    } catch { /* handled */ }
-  }
+      await deleteGrade.mutateAsync(id);
+      setConfirmDelete(null);
+    } catch {
+      /* handled */
+    }
+  };
 
-  const isBusy = createGrade.isPending || updateGrade.isPending
+  const isBusy = createGrade.isPending || updateGrade.isPending;
 
   return (
     <div className="flex flex-col flex-1 animate-fadeIn">
@@ -127,7 +137,7 @@ export default function GradesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar turma, curso ou ano..."
             className="w-full h-8 pl-8 pr-3 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
           />
@@ -158,19 +168,27 @@ export default function GradesPage() {
           <EmptyState
             icon={<BookOpen className="size-6" />}
             title="Nenhuma turma encontrada"
-            description={search ? 'Tente outro termo de busca.' : isAdmin ? 'Crie a primeira turma para começar.' : 'Nenhuma turma cadastrada.'}
-            action={isAdmin ? (
-              <button
-                onClick={openCreate}
-                className="h-8 px-3 bg-primary text-primary-foreground text-sm rounded-lg hover:bg-primary/90 flex items-center gap-1.5"
-              >
-                <Plus className="size-3.5" /> Criar Turma
-              </button>
-            ) : undefined}
+            description={
+              search
+                ? 'Tente outro termo de busca.'
+                : isAdmin
+                ? 'Crie a primeira turma para começar.'
+                : 'Nenhuma turma cadastrada.'
+            }
+            action={
+              isAdmin ? (
+                <button
+                  onClick={openCreate}
+                  className="h-8 px-3 bg-primary text-primary-foreground text-sm rounded-lg hover:bg-primary/90 flex items-center gap-1.5"
+                >
+                  <Plus className="size-3.5" /> Criar Turma
+                </button>
+              ) : undefined
+            }
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filtered.map(grade => (
+            {filtered.map((grade) => (
               <div
                 key={grade.id}
                 onClick={() => navigate(`/students?gradeId=${grade.id}`)}
@@ -181,31 +199,44 @@ export default function GradesPage() {
                     <BookOpen className="size-5 text-primary" />
                   </div>
                   {isAdmin && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openEdit(grade); }}
-                      className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <Pencil className="size-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setConfirmDelete(grade.id); }}
-                      className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(grade);
+                        }}
+                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDelete(grade.id);
+                        }}
+                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
                   )}
                 </div>
 
-                <h3 className="text-sm font-semibold text-foreground mb-0.5">{grade.displayName}</h3>
+                <h3 className="text-sm font-semibold text-foreground mb-0.5">
+                  {grade.displayName}
+                </h3>
                 <p className="text-xs text-muted-foreground mb-3">
                   <span className="font-medium text-foreground/70">{grade.courseAcronym}</span>
-                  {' · '}{grade.courseName}
+                  {' · '}
+                  {grade.courseName}
                 </p>
 
                 <div className="flex items-center justify-between">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SHIFT_COLORS[grade.shift] ?? 'bg-muted text-muted-foreground'}`}>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      SHIFT_COLORS[grade.shift] ?? 'bg-muted text-muted-foreground'
+                    }`}
+                  >
                     {SHIFT_LABELS[grade.shift] ?? grade.shift}
                   </span>
                   {grade.studentCount !== undefined && (
@@ -237,11 +268,12 @@ export default function GradesPage() {
 
             <form onSubmit={handleSubmit}>
               <div className="p-6 space-y-4">
-
                 {/* Preview do nome */}
                 {previewName && (
                   <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-3">
-                    <p className="text-xs text-primary font-medium uppercase tracking-wider mb-0.5">Nome</p>
+                    <p className="text-xs text-primary font-medium uppercase tracking-wider mb-0.5">
+                      Nome
+                    </p>
                     <p className="text-sm font-semibold text-foreground">{previewName}</p>
                   </div>
                 )}
@@ -249,17 +281,19 @@ export default function GradesPage() {
                 {/* Curso */}
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Curso *</label>
-                  <select
+                  <CustomSelect
                     required
                     value={form.courseId || ''}
-                    onChange={e => setForm(f => ({ ...f, courseId: Number(e.target.value) }))}
-                    className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+                    onChange={(e) => setForm((f) => ({ ...f, courseId: Number(e.target.value) }))}
+                    className="w-full"
+                    placeholder="Selecione o curso..."
                   >
-                    <option value="">Selecione o curso...</option>
-                    {courses?.map(c => (
-                      <option key={c.id} value={c.id}>{c.acronym} — {c.name}</option>
+                    {courses?.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.acronym} — {c.name}
+                      </option>
                     ))}
-                  </select>
+                  </CustomSelect>
                 </div>
 
                 {/* Série + Ano na mesma linha */}
@@ -267,11 +301,11 @@ export default function GradesPage() {
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">Série *</label>
                     <div className="grid grid-cols-3 gap-1.5">
-                      {[1, 2, 3].map(n => (
+                      {[1, 2, 3].map((n) => (
                         <button
                           key={n}
                           type="button"
-                          onClick={() => setForm(f => ({ ...f, gradeLevel: n }))}
+                          onClick={() => setForm((f) => ({ ...f, gradeLevel: n }))}
                           className={`h-9 text-sm rounded-lg border font-medium transition-all ${
                             form.gradeLevel === n
                               ? 'border-primary bg-primary/5 text-primary ring-1 ring-primary'
@@ -286,16 +320,20 @@ export default function GradesPage() {
 
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">Ano letivo *</label>
-                    <select
+                    <CustomSelect
                       required
                       value={form.schoolYear}
-                      onChange={e => setForm(f => ({ ...f, schoolYear: Number(e.target.value) }))}
-                      className="w-full h-9 px-3 border border-input rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring/50"
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, schoolYear: Number(e.target.value) }))
+                      }
+                      className="w-full"
                     >
-                      {YEAR_OPTIONS.map(y => (
-                        <option key={y} value={y}>{y}</option>
+                      {YEAR_OPTIONS.map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
                       ))}
-                    </select>
+                    </CustomSelect>
                   </div>
                 </div>
 
@@ -303,11 +341,11 @@ export default function GradesPage() {
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Turno *</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {GRADE_SHIFTS.map(s => (
+                    {GRADE_SHIFTS.map((s) => (
                       <button
                         key={s.value}
                         type="button"
-                        onClick={() => setForm(f => ({ ...f, shift: s.value }))}
+                        onClick={() => setForm((f) => ({ ...f, shift: s.value }))}
                         className={`h-9 px-3 text-sm rounded-lg border transition-all ${
                           form.shift === s.value
                             ? 'border-primary bg-primary/5 text-primary font-medium ring-1 ring-primary'
@@ -339,7 +377,11 @@ export default function GradesPage() {
                       <div className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                       Salvando...
                     </>
-                  ) : (editing ? 'Salvar' : 'Criar Turma')}
+                  ) : editing ? (
+                    'Salvar'
+                  ) : (
+                    'Criar Turma'
+                  )}
                 </button>
               </div>
             </form>
@@ -353,7 +395,8 @@ export default function GradesPage() {
           <div className="bg-card border border-border rounded-xl p-6 w-full max-w-sm shadow-xl animate-fadeIn">
             <h3 className="font-semibold text-foreground mb-2">Remover turma?</h3>
             <p className="text-sm text-muted-foreground mb-5">
-              Remova ou transfira os alunos antes de excluir esta turma. Esta ação não pode ser desfeita.
+              Remova ou transfira os alunos antes de excluir esta turma. Esta ação não pode ser
+              desfeita.
             </p>
             <div className="flex gap-2 justify-end">
               <button
@@ -374,5 +417,5 @@ export default function GradesPage() {
         </div>
       )}
     </div>
-  )
+  );
 }
