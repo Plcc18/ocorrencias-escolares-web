@@ -128,6 +128,7 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {/* Tipos mais registrados */}
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <div>
@@ -138,7 +139,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* compute and show typeSummary + top turmas */}
           {loadingOcc ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-5">
               {[...Array(4)].map((_, i) => (
@@ -150,80 +150,87 @@ export default function DashboardPage() {
               Ainda não há dados para comparar.
             </div>
           ) : (
-            <div className="p-5 grid grid-cols-1 lg:grid-cols-5 gap-4">
-              <div className="lg:col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {typeSummary.map(([type, count]) => {
-                  const info = OCCURRENCE_TYPE_MAP[type as keyof typeof OCCURRENCE_TYPE_MAP];
-                  return (
-                    <div key={type} className="border border-border rounded-lg p-3 bg-background">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-foreground truncate">
-                          {info?.label ?? type}
-                        </span>
-                        <span className="text-lg font-semibold text-primary">{count}</span>
-                      </div>
-                      <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-5">
+              {typeSummary.map(([type, count]) => {
+                const info = OCCURRENCE_TYPE_MAP[type as keyof typeof OCCURRENCE_TYPE_MAP];
+                return (
+                  <div key={type} className="border border-border rounded-lg p-3 bg-background">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium text-foreground truncate">
+                        {info?.label ?? type}
+                      </span>
+                      <span className="text-lg font-semibold text-primary">{count}</span>
+                    </div>
+                    <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-primary"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            (count / Math.max(...typeSummary.map(([, value]) => value))) * 100,
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Turmas com mais ocorrências (separado) */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Turmas com mais ocorrências</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Top turmas por número de ocorrências
+              </p>
+            </div>
+            <div className="text-xs text-muted-foreground">Top 5</div>
+          </div>
+
+          {loadingOcc ? (
+            <div className="p-5 space-y-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-8 skeleton-shimmer rounded" />
+              ))}
+            </div>
+          ) : (
+            <div className="p-5 space-y-3">
+              {(() => {
+                const gradeSummary = Object.entries(
+                  occurrenceSample.reduce<Record<string, number>>((acc, occ) => {
+                    const key = occ.gradeName || '—';
+                    acc[key] = (acc[key] ?? 0) + 1;
+                    return acc;
+                  }, {}),
+                )
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 5);
+
+                const maxCount = Math.max(1, ...gradeSummary.map(([, v]) => v));
+
+                return gradeSummary.map(([grade, count], idx) => (
+                  <div key={grade} className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{grade}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {count} ocorrênc{count === 1 ? 'ia' : 'ias'}
+                      </p>
+                    </div>
+                    <div className="w-24 ml-3">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-primary"
-                          style={{
-                            width: `${Math.min(
-                              100,
-                              (count / Math.max(...typeSummary.map(([, value]) => value))) * 100,
-                            )}%`,
-                          }}
+                          className="h-full bg-primary rounded-full"
+                          style={{ width: `${Math.round((count / maxCount) * 100)}%` }}
                         />
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Side card: Turmas com mais ocorrências */}
-              <div className="lg:col-span-1 border border-border rounded-lg p-3 bg-background">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      Turmas com mais ocorrências
-                    </p>
-                    <p className="text-xs text-muted-foreground">Rank das turmas</p>
                   </div>
-                </div>
-
-                <div className="mt-3 space-y-2">
-                  {(() => {
-                    const gradeSummary = Object.entries(
-                      occurrenceSample.reduce<Record<string, number>>((acc, occ) => {
-                        const key = occ.gradeName || '—';
-                        acc[key] = (acc[key] ?? 0) + 1;
-                        return acc;
-                      }, {}),
-                    )
-                      .sort((a, b) => b[1] - a[1])
-                      .slice(0, 5);
-
-                    const maxCount = Math.max(1, ...gradeSummary.map(([, v]) => v));
-
-                    return gradeSummary.map(([grade, count], idx) => (
-                      <div key={grade} className="flex items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{grade}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {count} ocorrênc{count === 1 ? 'ia' : 'ias'}
-                          </p>
-                        </div>
-                        <div className="w-20 ml-3">
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-primary rounded-full"
-                              style={{ width: `${Math.round((count / maxCount) * 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
+                ));
+              })()}
             </div>
           )}
         </div>
